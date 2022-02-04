@@ -1,0 +1,105 @@
+.cal-event-main-cls {
+    width: 18px !important;
+    height: 18px !important;
+    border: none !important;
+    border-radius: 50% !important;
+    text-align: center !important;
+    padding: 7px 4px 0px 4px !important;
+}
+
+.sales-analysis .two-button-set {
+    width: 100% !important;
+    height: 30px !important;
+    padding-left: 0px !important;
+}
+
+.margin-bottom-0 {
+    margin-bottom: 0px !important;
+    width: 100% !important;
+    height: 24px !important;
+}
+
+.sales-tab-group {
+    display: none;
+}
+
+    .sales-tab-group .controls-tabs li {
+        width: 65px !important;
+    }
+
+        .sales-tab-group .controls-tabs li a:hover {
+            background-position: top !important;
+        }
+
+        .sales-tab-group .controls-tabs li.current a {
+            background-position: 0px -141px !important;
+            background-size: cover !important;
+        }
+
+        .sales-tab-group .controls-tabs li a {
+            width: 65px !important;
+            background-size: cover !important;
+        }
+
+.analysis-list-container {
+    display: none;
+}
+
+.color-legend {
+    display: inline-block;
+    width: 100%;
+    padding: 0px 0px 10px 0px;
+}
+
+    .color-legend ul {
+        display: inline-block;
+        width: 99%;
+        padding: 5px 0px 5px 5px;
+        border: 1px solid #ccc8c8;
+        border-radius: 5px;
+    }
+
+        .color-legend ul li {
+            float: left;
+            width: 50%;
+            padding: 3px 0px;
+            display: inline-block;
+        }
+
+            .color-legend ul li .color-cnt {
+                width: 15px;
+                height: 15px;
+                border: none;
+                border-radius: 50%;
+                display: inline-block;
+                float: left;
+            }
+
+                .color-legend ul li .color-cnt.red {
+                    background-color: red;
+                }
+
+                .color-legend ul li .color-cnt.green {
+                    background-color: green;
+                }
+
+                .color-legend ul li .color-cnt.blue {
+                    background-color: blue;
+                }
+
+                .color-legend ul li .color-cnt.cyan {
+                    background-color: cyan;
+                }
+
+                .color-legend ul li .color-cnt.orange {
+                    background-color: orange;
+                }
+
+            .color-legend ul li .color-text-cnt {
+                display: inline-block;
+                text-align: left;
+                height: 15px;
+                float: left;
+                padding: 1px 5px 0px 5px;
+                font-weight: bold;
+            }

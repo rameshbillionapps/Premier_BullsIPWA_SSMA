@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>Bulls-I</title>
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#81D795" />
+    <meta name="Description" content="Description" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Bulls-I" />
+    <meta name="msapplication-TileImage" content="img/icon/ssp_144x144.png" />
+    <meta name="msapplication-TileColor" content="#6C6C6C" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" sizes="192x192" href="img/icon/ssp_192x192.png" />
+    <link rel="apple-touch-icon" href="img/icon/ssp_114x114.png" />
+    <link rel="manifest" href="manifest.json" />
+    <link href="css/reset.css" rel="stylesheet" type="text/css" />
+    <link href="css/common.css" rel="stylesheet" type="text/css" />
+    <link href="css/simple-lists.css" rel="stylesheet" type="text/css" />
+    <link href="css/block-lists.css" rel="stylesheet" type="text/css" />
+    <link href="css/table.css" rel="stylesheet" type="text/css" />
+    <link href="css/form.css" rel="stylesheet" type="text/css" />
+    <link href="css/mobile.css" rel="stylesheet" type="text/css" />
+    <link href="css/special-pages.css" rel="stylesheet" type="text/css" />
+    <link href="css/fullcalendar.css" rel="stylesheet" />
+    <link href="css/calendars.css" rel="stylesheet" />
+    <link href="css/style.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="css/addtohomescreen.css" />
+    <script src="js/addtohomescreen.js"></script>
+    <noscript>Your browser does not support JavaScript!</noscript>
+    <title>Droid Account Manager</title>
+    <style>
+      #snackbar {
+        visibility: hidden;
+        min-width: 250px;
+        margin-left: -125px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 2px;
+        padding: 16px;
+        position: fixed;
+        z-index: 1;
+        left: 50%;
+        bottom: 30px;
+      }
+
+      #snackbar.show {
+        visibility: visible;
+        -webkit-animation: fadein 0.5s;
+        animation: fadein 0.5s;
+      }
+
+      @-webkit-keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+    </style>
+
+    <style>
+      .offline-notification {
+        transition: transform 0.3s;
+        transform: translateY(-100%) translateX(-50%);
+        position: fixed;
+        left: 50%;
+        background: #e9e9e9;
+        color: black;
+        padding: 1.2em;
+        text-align: center;
+        font-weight: bold;
+      }
+      .offline-notification a {
+        color: white;
+      }
+      .offline-notification a:visited {
+        color: white;
+      }
+      .offline-notification:hover .offline-notification_explanation {
+        display: block;
+      }
+      .offline-notification_explanation {
+        display: none;
+        background: inherit;
+        padding-top: 1em;
+      }
+
+      .offline-msg {
+        display: none;
+      }
+      .offline .offline-notification {
+        transition: transform 0.3s;
+        transform: translateY(0) translateX(-50%);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="snackbar">
+      A new version of this app is available. Click <a id="reload">here</a> to
+      update.
+    </div>
+    <div class="offline-notification">It looks like you're offline.</div>
+    <script>
+      window.addEventListener('load', () => {
+        console.log('window load');
+        function handleNetworkChange(event) {
+          if (navigator.onLine) {
+            document.body.classList.remove('offline');
+          } else {
+            document.body.classList.add('offline');
+          }
+        }
+
+        window.addEventListener('online', handleNetworkChange);
+        window.addEventListener('offline', handleNetworkChange);
+      });
+
+      addToHomescreen();
+
+      function showUpdateBar() {
+        let snackbar = document.getElementById('snackbar');
+        snackbar.className = 'show';
+      }
+
+      document.getElementById('reload').addEventListener('click', function() {
+        if (document.getElementById('snackbar').classList.contains('show')) {
+          document.getElementById('snackbar').classList.remove('show');
+          document.getElementById('snackbar').classList.add('hide');
+        }
+        newWorker.postMessage({ action: 'skipWaiting' });
+      });
+    </script>
+    <script>
+      if (navigator.serviceWorker) {
+        // if (window.BroadcastChannel) {
+        //     const updateChannel = new window.BroadcastChannel('precache-updates');
+        //     updateChannel.addEventListener('message', (event) => {
+        //         console.log('event --------------------- INSIDE EVENT START');
+        //         console.log(event);
+        //         console.log('event --------------------- INSIDE EVENT END');
+        //         alert('This page has been updated. Please refresh the page.');
+        //     });
+        // }
+
+        navigator.serviceWorker
+          .register('/ssp_sw.js', { scope: '/' })
+          .then(registration => {
+            console.log('[SW REGISTERED ] ');
+            registration.addEventListener('updatefound', () => {
+              // A wild service worker has appeared in reg.installing!
+              newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                // Has network.state changed?
+                switch (newWorker.state) {
+                  case 'installed':
+                    if (navigator.serviceWorker.controller) {
+                      // new update available
+                      showUpdateBar();
+                    }
+                    // No update available
+                    break;
+                }
+              });
+            });
+          })
+          .catch(error => {
+            console.log('sorry', error);
+          });
+      }
+    </script>
+    <div id="headercontent"></div>
+    <div id="maincontent"></div>
+    <script src="js/jquery-1.6.3.min.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/mobile.js"></script>
+    <script src="js/jquery.tip.js"></script>
+    <script src="js/ssp_db.js" type="text/javascript"></script>
+    <script src="js/ssp_home.js" type="text/javascript"></script>
+    <script src="js/ssp_orders.js" type="text/javascript"></script>
+    <script src="js/ssp_customers.js" type="text/javascript"></script>
+    <script src="js/ssp_supplies.js" type="text/javascript"></script>
+    <script src="js/ssp_bulls.js" type="text/javascript"></script>
+    <script src="js/ssp_mileage.js" type="text/javascript"></script>
+    <script src="js/ssp_timesheet.js" type="text/javascript"></script>
+    <script src="js/ssp_analysis.js" type="text/javascript"></script>
+    <script src="js/ssp_transfers.js" type="text/javascript"></script>
+    <script src="js/ssp_techrelief.js" type="text/javascript"></script>
+    <script src="js/ssp_reports.js" type="text/javascript"></script>
+    <script src="js/ssp_invorder.js" type="text/javascript"></script>
+	<script src="js/ssp_docs.js" type="text/javascript"></script>
+    <script src="js/base64.js" type="text/javascript"></script>
+    <script src="js/sprintf.js" type="text/javascript"></script>
+    <script src="js/jspdf.js" type="text/javascript"></script>
+    <script src="js/fullcalendar.min.js"></script>
+  </body>
+</html>

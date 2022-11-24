@@ -11,9 +11,9 @@ ssp.webdb.loadDocs = function () {
     divContent += '<iframe src="' + docUrl + '/Docs/Docs.aspx?type=home" onload="resize_iframe()" frameborder="0" style="overflow:hidden;height:100%;width:100%" height="100%" width="100%"></iframe>';
     divContent += '</div>';
     divContent += '</form></div></section>';
-		
 
-	$('#maincontent').html(divContent);	
+
+    $('#maincontent').html(divContent);
 }
 
 

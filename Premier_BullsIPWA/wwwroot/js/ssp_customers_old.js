@@ -277,7 +277,7 @@ ssp.webdb.setCustomerFav = function(ACCOUNT) {
         ssp.webdb.onError
       );
     });
-    $('#fav_' + ACCOUNT).attr('src', 'img/star-empty.png');
+    $('#fav_' + ACCOUNT).attr('src', 'img/starEmpty.png');
   } else {
     ssp.webdb.db.transaction(function(tx) {
       tx.executeSql(
@@ -401,7 +401,7 @@ function loadCustomersContentBlock() {
   var rowOutput = '<article>';
   rowOutput += '<div class="block-border"><div class="block-content">';
   rowOutput +=
-    '<h1><a href="#" class="float-right" onclick="loadCustomerNew();"><img src="img/plus-circle-blue.png" alt="plus circle" width="16" height="16"></a>Customer List<div id="customerkeyword"></div></h1>';
+    '<h1><a href="#" class="float-right" onclick="loadCustomerNew();"><img src="img/plusCircleBlue.png" alt="plus circle" width="16" height="16"></a>Customer List<div id="customerkeyword"></div></h1>';
   rowOutput +=
     '<form class="form input-with-button full-width" onsubmit="return ssp.webdb.searchCustomers(true)" >';
   rowOutput += '<p><span class="input-type-text">';
@@ -562,7 +562,7 @@ function loadCustomers(tx, rs) {
               ')"/>'
             : '<img id="fav_' +
               rs.rows.item(i).ACCT_NO +
-              '" width="16" height="16" alt="" src="img/star-empty.png" onclick="ssp.webdb.setCustomerFav(' +
+              '" width="16" height="16" alt="" src="img/starEmpty.png" onclick="ssp.webdb.setCustomerFav(' +
               "'" +
               rs.rows.item(i).ACCT_NO +
               "'" +
@@ -587,7 +587,7 @@ function loadCustomers(tx, rs) {
     rowOutput += '</ul></div>';
     var rectotal = Math.max(rs.rows.length, $('#customerlisttotal').html());
     var moreOutput =
-      '<div id="customermore"><img src="img/arrow-curve-000-left.png" width="16" alt="arrow curve" height="16" class="picto"> <div style="display:inline-block" id="customerlistcount">' +
+      '<div id="customermore"><img src="img/arrowCurveLeft.png" width="16" alt="arrow curve" height="16" class="picto"> <div style="display:inline-block" id="customerlistcount">' +
       reccount +
       '</div> of <div style="display:inline-block" id="customerlisttotal">' +
       rectotal +

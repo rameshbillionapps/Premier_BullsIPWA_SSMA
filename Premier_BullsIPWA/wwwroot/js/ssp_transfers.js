@@ -48,7 +48,7 @@ ssp.webdb.getTechTransfer = function () {
 
     $('#login-form').removeBlockMessages();
 
-    ssp.webdb.getTechTransferList('%');
+    //ssp.webdb.getTechTransferList('%');
     $('#lookuplisttech').hide();
 
     $('#tab-bulls').onTabShow(function () {
@@ -67,28 +67,37 @@ ssp.webdb.getTechTransfer = function () {
     });
     $('#tab-pending').onTabShow(function () {
         $('#techsave').hide();
+        $('#lookuplist').hide();
+        $('#lookuplisttech').hide();
         ssp.webdb.getTransferReport();
     });
 
     $('#BullCode').click(function () {
         $('#lookuplisttech').hide();
         $('#lookuplist').show();
+
+        window.location.hash = ''; //Added to enable the jump to '#lookuplist' after every click.
         window.location.hash = '#lookuplist';
     });
 
     $('#TechCode').click(function () {
         $('#lookuplist').hide();
         $('#lookuplisttech').show();
+
+        window.location.hash = ''; //Added to enable the jump to '#lookuplisttech' after every click.
         window.location.hash = '#lookuplisttech';
     });
 
     $('#SupplyCode').click(function () {
         $('#lookuplisttech').hide();
         $('#lookuplist').show();
+
+        window.location.hash = ''; //Added to enable the jump to '#lookuplist' after every click.
         window.location.hash = '#lookuplist';
     });
 
-
+    loadTransferTechListContentBlock(); //Added here to keep the same DOM when searching, so input doesn't get out of focus 
+    ssp.webdb.getTechTransferList('%');
 }
 
 ssp.webdb.setTechItem = function (item, itemname) {
@@ -102,13 +111,23 @@ ssp.webdb.resetTransfer = function () {
     $('#TransQty').val('');
     ssp.webdb.resetSalesItemBull();
     $('#login-form').removeBlockMessages();
+
+    //Added this to get the updated bulls/sales data after successful transfer
+    if ($('#tab-bulls').css('display') != 'none') { //=='block'
+        var searchBulls = $("#searchbulls").val();
+        searchBulls ? ssp.webdb.getBulls(searchBulls) : ssp.webdb.getBulls('%'); //Added this check to keep the initial search '%' consistent
+    }
+    else {
+        var searchSupplies = $("#searchsupplies").val();
+        searchSupplies ? ssp.webdb.getSupplies(searchSupplies) : ssp.webdb.getSupplies('%');
+    }
 }
 
 ssp.webdb.deleteTransfer = function (SIORNM, MODSTAMP) {
 
     if ($("#del" + MODSTAMP).attr("class") == "button red") {
         ssp.webdb.db.transaction(function (tx) {
-            tx.executeSql('DELETE FROM tblSales WHERE SIORNM = ? AND MODSTAMP = ?', [SIORNM, MODSTAMP], ssp.webdb.getTransferReport(), ssp.webdb.onError);
+            tx.exec('DELETE FROM tblSales WHERE SIORNM = ? AND MODSTAMP = ?', [SIORNM, MODSTAMP], ssp.webdb.getTransferReport, ssp.webdb.onError);
         });
     } else {
         $("#del" + MODSTAMP).removeClass("button").addClass("button red");
@@ -120,7 +139,7 @@ ssp.webdb.deleteTransfer = function (SIORNM, MODSTAMP) {
 ssp.webdb.pdfTransfer = function (SIORNM, MODSTAMP, RECTECH) {
 
     ssp.webdb.db.transaction(function (tx) {
-        tx.executeSql('SELECT    transfrom.TransferListName as FromName, tblTechTransfer.TransferListName, tblTechTransfer.TechID, tblSales.SIDATO, tblSales.SITYPS, \
+        tx.exec('SELECT    transfrom.TransferListName as FromName, tblTechTransfer.TransferListName, tblTechTransfer.TechID, tblSales.SIDATO, tblSales.SITYPS, \
         		tblSales.SIQTY, tblSales.SICOD, tblSales.SINAM, tblSales.SIORNM, tblSales.MODSTAMP, tblSales.SIREP, tblSales.FRZYYYYMMDD  \
                 FROM tblSales \
                 INNER JOIN  tblTechTransfer ON tblSales.SIANM = tblTechTransfer.TechID \
@@ -168,20 +187,26 @@ ssp.webdb.addTransfer = function () {
             $('#login-form').removeBlockMessages().blockMessage('Please enter a quantity.', { type: 'error' });
         }
         else {
-            tx.executeSql('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIREP,SIANM,FRZDAT,MOD,MODSTAMP,FRZYYYYMMDD) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', ['Transfer', currenttime + '.' + window.localStorage.getItem("ssp_TechID"), currenttime, 'T', itemcode, $('#TransQty').val(), itemname, window.localStorage.getItem("ssp_TechID"), $('#TechCode').html(), bullfreeze, 1, currenttime,bullfreezeYYYYMMDD], ssp.webdb.resetTransfer(), ssp.webdb.onError);
+            techqty = +techqty; //[ala] converting string to number. Individual value insertion doesn't require this but it is needed when inserting a data object.
+
+            var salesDataStructure = { SIACT: null, SIINVL: null, SIORNM: null, SIINVO: null, SIDATO: null, SITIMO: null, SITYPS: null, SICOD: null, SIQTY: null, SIMATH: null, SINAM: null, SIPRC: null, SITYPI: null, SICOW: null, SIARM: null, SISTP: null, SIOTH: null, SILIN: null, SISEM: null, SIPOA: null, SISUP: null, SICDI: null, SIPGA: null, SIDSC: null, SIREP: null, SIANM: null, SILVL1: null, SILVL2: null, SILVL3: null, SILVL4: null, SILVL5: null, SIRETL: null, FRZDAT: null, LOTNOT: null, SIDATOYYYYMMDD: null, BREEDTYPE: null, FRZYYYYMMDD: null, MOD: null, MODSTAMP: null };
+            var currentData = { SIACT: 'Transfer', SIORNM: currenttime + '.' + window.localStorage.getItem("ssp_TechID"), SIDATO: currenttime, SITYPS: 'T', SICOD: itemcode, SIQTY: techqty, SINAM: itemname, SIREP: window.localStorage.getItem("ssp_TechID"), SIANM: $('#TechCode').html(), FRZDAT: bullfreeze, MOD: 1, MODSTAMP: currenttime, FRZYYYYMMDD: bullfreezeYYYYMMDD }
+
+            tx.exec('INSERT INTO tblSales VALUES ?', [{ ...salesDataStructure, ...currentData }], ssp.webdb.resetTransfer, ssp.webdb.onError); //[ala] Using salesDataStructure to avoid the undefined values error when POSTing the data to backend. In WebSQL after inserting, rest object property remains null whereas in alasql it remains undefined.
+            //tx.exec('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIREP,SIANM,FRZDAT,MOD,MODSTAMP,FRZYYYYMMDD) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', ['Transfer', currenttime + '.' + window.localStorage.getItem("ssp_TechID"), currenttime, 'T', itemcode, $('#TransQty').val(), itemname, window.localStorage.getItem("ssp_TechID"), $('#TechCode').html(), bullfreeze, 1, currenttime,bullfreezeYYYYMMDD], ssp.webdb.resetTransfer(), ssp.webdb.onError);
         }
     });
     return false;
 }
 
 ssp.webdb.getTechTransferList = function (keywords, recbegin) {
-    loadTransferTechListContentBlock();
+    //loadTransferTechListContentBlock();
     ssp.webdb.db.transaction(function (tx) {
         if (typeof recbegin == 'undefined') {
-            // if (keywords != '%') $('#techkeyword').html(keywords);
-            tx.executeSql('SELECT * FROM tblTechTransfer WHERE (TechID LIKE "%' + keywords + '%" OR TransferListName LIKE "%' + keywords + '%") ORDER BY TransferListName', [], loadTechTransferList, ssp.webdb.onError);
+            if (keywords != '%') $('#techkeyword').html(keywords);
+            tx.exec('SELECT * FROM tblTechTransfer WHERE (TechID LIKE "%' + keywords + '%" OR TransferListName LIKE "%' + keywords + '%") ORDER BY TransferListName', [], loadTechTransferList, ssp.webdb.onError);
         } else {
-            tx.executeSql('SELECT * FROM tblTechTransfer WHERE (TechID LIKE "%' + keywords + '%" OR TransferListName LIKE "%' + keywords + '%") ORDER BY TransferListName' + ' LIMIT ' + recbegin + ',50', [], loadTechTransferList, ssp.webdb.onError);
+            tx.exec('SELECT * FROM tblTechTransfer WHERE (TechID LIKE "%' + keywords + '%" OR TransferListName LIKE "%' + keywords + '%") ORDER BY TransferListName' + ' LIMIT 50 OFFSET ' + recbegin, [], loadTechTransferList, ssp.webdb.onError);
         }
     });
 }
@@ -213,28 +238,28 @@ function loadTransferTechListContentBlock() {
     $('#lookuplisttech').html(rowOutput);
 }
 
-function loadTechTransferList(tx, rs) {
+function loadTechTransferList(rs) {
     var reccount = 0;
     var currfilter = $('#techkeyword').html();
     var rowOutput = '';
-    if (rs.rows.length == 0) {
+    if (rs.length == 0) {
         rowOutput += '<p class="message warning">Sorry, no techs to list.</p>';
     }
     else {
         rowOutput += '<ul class="extended-list">';
-        for (var i = 0; i < rs.rows.length ; i++) {
-            rowOutput += '<li><a href="#" onclick="ssp.webdb.setTechItem(' + "'" + rs.rows.item(i).TechID + '\',\'' + rs.rows.item(i).TransferListName + "'" + ');">';
+        for (var i = 0; i < rs.length; i++) {
+            rowOutput += '<li><a href="#" onclick="ssp.webdb.setTechItem(' + "'" + rs[i].TechID + '\',\'' + rs[i].TransferListName + "'" + ');">';
             rowOutput += '<span class="icon"></span>';
-            rowOutput += rs.rows.item(i).TransferListName + '<br>';
-            rowOutput += '<small>' + rs.rows.item(i).TechID + '</small>';
+            rowOutput += rs[i].TransferListName + '<br>';
+            rowOutput += '<small>' + rs[i].TechID + '</small>';
             rowOutput += '</a></li>';
         }
         reccount = Math.max(0, $('#techlistcount').html()) + i;
         //var listid = (Math.max(0,Math.ceil(reccount/50)));
         rowOutput += '<div id="techlist0"></div>';
         rowOutput += '</ul>';
-        var rectotal = Math.max(rs.rows.length, $('#techlisttotal').html());
-        var moreOutput = '<div id=techmore"><img src="img/arrow-curve-000-left.png" width="16" height="16" class="picto"> <div style="display:inline-block" id="techlistcount">' + reccount + '</div> of <div style="display:inline-block" id="techlisttotal">' + rectotal + '</div> items  ';
+        var rectotal = Math.max(rs.length, $('#techlisttotal').html());
+        var moreOutput = '<div id=techmore"><img src="img/arrowCurveLeft.png" width="16" height="16" class="picto"> <div style="display:inline-block" id="techlistcount">' + reccount + '</div> of <div style="display:inline-block" id="techlisttotal">' + rectotal + '</div> items  ';
         //if (reccount != rectotal) moreOutput += '<button type="button" onClick="ssp.webdb.getTechList(\'' + currfilter + '\',' + Math.min((reccount),rectotal) + ');">Show More</button></div>';
     }
     $('#techlist0').html(rowOutput);
@@ -245,19 +270,19 @@ function loadTechTransferList(tx, rs) {
     $('#searchtechs').keyup(function () {
         delay(function () {
             ssp.webdb.searchtechs();
-        }, 500);
+        }, 0);
     });
 
 
 
 }
 
-function transferPDF(tx, rs) {
+function transferPDF(rs) {
 
     //window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
 
     //function gotFS(fileSystem) {
-    //    var path = window.localStorage.getItem('ssp_orderpdf') + "transfer_" + rs.rows.item(0).SIORNM + ".pdf";
+    //    var path = window.localStorage.getItem('ssp_orderpdf') + "transfer_" + rs[0].SIORNM + ".pdf";
     //    fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
 
     //    function gotFileEntry(fileEntry) {
@@ -272,126 +297,126 @@ function transferPDF(tx, rs) {
     var reply2Header = 'Phone: (570)836-3168   FAX: (570)836-1490';
 
 
-            switch (window.localStorage.getItem("ssp_projectid")) {
-                case 'sess':
-                    homeHeader = 'Premier Select Sires, Inc.';
-                    addr1Header = '3789 Old Port Royal Road, Spring Hill, TN 37174';
-                    addr2Header = 'Phone: (931) 489-2020   FAX: (931) 489-2026  e-mail: sess.office@premierselect.com';
-                    break;
-                case 'ssc':
-                    homeHeader = 'Select Sires Genervations, Inc.';
-                    addr1Header = 'RR 3 P.O. Box 489 / 2 Industrial Road, Kemptville, Ontario K0G 1J0';
-                    addr2Header = 'Phone: (613) 258-3800   FAX: (613) 258-7257  e-mail: ssgi@selectgen.com';
-                    break;
-                case 'ps':
-                    homeHeader = 'Select Sires MidAmerica';
-                    addr4Header = '41W 394 U.S. Highway 20, Hampshire, IL 60140';
-                    addr5Header = 'Phone: (847) 464-5281';
-                    addr1Header = '833 West 400 North, Logan UT 84321';
-                    addr2Header = 'Phone (435) 752-2022';
-                    break;
-                case 'ecss':
-                    homeHeader = 'CentralStar';
-                    addr1Header = 'P.O. Box 191, Waupun, WI 53963-0191';
-                    addr2Header = 'P.O. Box 23157, Lansing, MI 48909-3157';
-                    addr3Header = 'Phone: 800.631.3510  Website: www.mycentralstar.com';
-                    break;
-            }
+    switch (window.localStorage.getItem("ssp_projectid")) {
+        case 'sess':
+            homeHeader = 'Premier Select Sires, Inc.';
+            addr1Header = '3789 Old Port Royal Road, Spring Hill, TN 37174';
+            addr2Header = 'Phone: (931) 489-2020   FAX: (931) 489-2026  e-mail: sess.office@premierselect.com';
+            break;
+        case 'ssc':
+            homeHeader = 'Select Sires Genervations, Inc.';
+            addr1Header = 'RR 3 P.O. Box 489 / 2 Industrial Road, Kemptville, Ontario K0G 1J0';
+            addr2Header = 'Phone: (613) 258-3800   FAX: (613) 258-7257  e-mail: ssgi@selectgen.com';
+            break;
+        case 'ps':
+            homeHeader = 'Select Sires MidAmerica';
+            addr4Header = '41W 394 U.S. Highway 20, Hampshire, IL 60140';
+            addr5Header = 'Phone: (847) 464-5281';
+            addr1Header = '833 West 400 North, Logan UT 84321';
+            addr2Header = 'Phone (435) 752-2022';
+            break;
+        case 'ecss':
+            homeHeader = 'CentralStar';
+            addr1Header = 'P.O. Box 191, Waupun, WI 53963-0191';
+            addr2Header = 'P.O. Box 23157, Lansing, MI 48909-3157';
+            addr3Header = 'Phone: 800.631.3510  Website: www.mycentralstar.com';
+            break;
+    }
 
-            var doc = new jsPDF();
-            var top = 20;
+    var doc = new jsPDF();
+    var top = 20;
 
-            doc.setFontSize(16);
-            doc.text(10, top, homeHeader);
-            doc.text(10, (top + .75), "__________________");
+    doc.setFontSize(16);
+    doc.text(10, top, homeHeader);
+    doc.text(10, (top + .75), "__________________");
 
-            doc.setFontSize(8);
-            doc.text(80, (top - 10), addr1Header);
-            doc.text(80, (top - 6.25), addr2Header);
-            if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
-                doc.text(80, (top - 2.5), addr3Header);
-            }
-            if (window.localStorage.getItem("ssp_projectid") == 'ps') {
-                doc.text(10, (top - 10), addr4Header);
-                doc.text(10, (top - 6.25), addr5Header);
-            }
-            doc.setFontSize(10);
-            if (window.localStorage.getItem("ssp_projectid") == 'ssp') {
-                doc.text(80, (top - 3), "REPLY TO:");
-                doc.setFontSize(8);
-                doc.text(100, (top - 3), reply1Header);
-                doc.text(80, (top + .75), reply2Header);
-            }
-
-
-            doc.setFontSize(12);
-            doc.text(10, (top + 10), "Received By:");
-            doc.text(10, (top + 10.5), "______________");
-            doc.setFontSize(10);
-            doc.text(10, (top + 15), 'ID: ' + rs.rows.item(0).TechID);
-            doc.text(10, (top + 20), 'Name: ' + rs.rows.item(0).TransferListName);
-            doc.setFontSize(12);
-            doc.text(100, (top + 10), "Transfer");
-            doc.text(100, (top + 10.5), "_________");
-            doc.setFontSize(10);
-            doc.text(100, (top + 15), 'Number: ' + rs.rows.item(0).SIORNM);
-            doc.text(100, (top + 20), 'Date: ' + formatDate(Date.now()/1000));
-            doc.text(100, (top + 25), 'From: ' + rs.rows.item(0).SIREP);
-            doc.text(100, (top + 30), 'Name: ' + rs.rows.item(0).FromName);     //JKS121817***ADDED USERNAME to Transfer List for a From Name***
-
-            doc.setFontSize(12);
-            doc.text(10, (top + 35), "Items");
-            doc.text(10, (top + 35.5), "_____");
-
-            doc.text(10, (top + 40), 'Transfer Date - Code');
-            doc.text(15, (top + 45), 'Name');
-            doc.text(120, (top + 40), 'Quantity');
-            doc.text(10, (top + 45.5), "_____________________________________________________________________");
+    doc.setFontSize(8);
+    doc.text(80, (top - 10), addr1Header);
+    doc.text(80, (top - 6.25), addr2Header);
+    if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
+        doc.text(80, (top - 2.5), addr3Header);
+    }
+    if (window.localStorage.getItem("ssp_projectid") == 'ps') {
+        doc.text(10, (top - 10), addr4Header);
+        doc.text(10, (top - 6.25), addr5Header);
+    }
+    doc.setFontSize(10);
+    if (window.localStorage.getItem("ssp_projectid") == 'ssp') {
+        doc.text(80, (top - 3), "REPLY TO:");
+        doc.setFontSize(8);
+        doc.text(100, (top - 3), reply1Header);
+        doc.text(80, (top + .75), reply2Header);
+    }
 
 
-            doc.setFontSize(10);
-            var linepos = (top + 55);
-            var bullname = "";
-            for (var i = 0; i < rs.rows.length; i++) {
-                doc.text(10, linepos, formatDate(rs.rows.item(0).SIDATO) + ' - ' + rs.rows.item(i).SICOD );
-                bullname = rs.rows.item(i).SINAM + ((window.localStorage.getItem("ssp_freeze") == 1 && rs.rows.item(i).FRZYYYYMMDD !== '0') ? ' - ' + formatYYYYMMDDtoMDY(rs.rows.item(i).FRZYYYYMMDD) : '');
-                doc.text(15, linepos + 5, '' + bullname);
-                doc.text(120, linepos, '' + rs.rows.item(i).SIQTY);
-                linepos += 15;
+    doc.setFontSize(12);
+    doc.text(10, (top + 10), "Received By:");
+    doc.text(10, (top + 10.5), "______________");
+    doc.setFontSize(10);
+    doc.text(10, (top + 15), 'ID: ' + rs[0].TechID);
+    doc.text(10, (top + 20), 'Name: ' + rs[0].TransferListName);
+    doc.setFontSize(12);
+    doc.text(100, (top + 10), "Transfer");
+    doc.text(100, (top + 10.5), "_________");
+    doc.setFontSize(10);
+    doc.text(100, (top + 15), 'Number: ' + rs[0].SIORNM);
+    doc.text(100, (top + 20), 'Date: ' + formatDate(Date.now() / 1000));
+    doc.text(100, (top + 25), 'From: ' + rs[0].SIREP);
+    doc.text(100, (top + 30), 'Name: ' + rs[0].FromName);     //JKS121817***ADDED USERNAME to Transfer List for a From Name***
 
-                if ((linepos > 250) && (i < rs.rows.length - 1)) {
-                    doc.text(10, linepos, "(cont.)");
-                    doc.addPage();
-                    doc.text(10, 10, "(cont.) " + homeHeader + " - To Tech: " + rs.rows.item(i).TechID);
-                    linepos = 20;
-                }
+    doc.setFontSize(12);
+    doc.text(10, (top + 35), "Items");
+    doc.text(10, (top + 35.5), "_____");
 
-            }
+    doc.text(10, (top + 40), 'Transfer Date - Code');
+    doc.text(15, (top + 45), 'Name');
+    doc.text(120, (top + 40), 'Quantity');
+    doc.text(10, (top + 45.5), "_____________________________________________________________________");
 
-            doc.save('Transfer_' + Math.round(new Date().getTime() / 1000) + '.pdf');
 
-                //doc.output('datauri');    //JKS061316 PDFLocalTest
-                //PDFLocalTest comment out from here... (uncomment the line above)
-            //writer.write(doc.output());
-            //    //JKS061316 ***BEGIN-Replaced FileOpener with FileOpener2***
-            //cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
-            //    'application/pdf',
-            //    {
-            //        error: function (e) {
-            //            console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
-            //        },
-            //        success: function () {
-            //            console.log('file opened successfully');
-            //        }
-            //    }
-            //);
-                //JKS061316 ***END-Replaced FileOpener with FileOpener2***
-                //JKS061316 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
-       // }
+    doc.setFontSize(10);
+    var linepos = (top + 55);
+    var bullname = "";
+    for (var i = 0; i < rs.length; i++) {
+        doc.text(10, linepos, formatDate(rs[0].SIDATO) + ' - ' + rs[i].SICOD);
+        bullname = rs[i].SINAM + ((window.localStorage.getItem("ssp_freeze") == 1 && rs[i].FRZYYYYMMDD !== '0') ? ' - ' + formatYYYYMMDDtoMDY(rs[i].FRZYYYYMMDD) : '');
+        doc.text(15, linepos + 5, '' + bullname);
+        doc.text(120, linepos, '' + rs[i].SIQTY);
+        linepos += 15;
 
-      //  }
+        if ((linepos > 250) && (i < rs.length - 1)) {
+            doc.text(10, linepos, "(cont.)");
+            doc.addPage();
+            doc.text(10, 10, "(cont.) " + homeHeader + " - To Tech: " + rs[i].TechID);
+            linepos = 20;
+        }
 
-   // }
+    }
+
+    doc.save('Transfer_' + Math.round(new Date().getTime() / 1000) + '.pdf');
+
+    //doc.output('datauri');    //JKS061316 PDFLocalTest
+    //PDFLocalTest comment out from here... (uncomment the line above)
+    //writer.write(doc.output());
+    //    //JKS061316 ***BEGIN-Replaced FileOpener with FileOpener2***
+    //cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
+    //    'application/pdf',
+    //    {
+    //        error: function (e) {
+    //            console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
+    //        },
+    //        success: function () {
+    //            console.log('file opened successfully');
+    //        }
+    //    }
+    //);
+    //JKS061316 ***END-Replaced FileOpener with FileOpener2***
+    //JKS061316 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
+    // }
+
+    //  }
+
+    // }
 
 }
 

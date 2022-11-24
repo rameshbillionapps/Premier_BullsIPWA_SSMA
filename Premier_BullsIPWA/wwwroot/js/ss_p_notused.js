@@ -142,7 +142,7 @@ function loadCustomers(tx, rs) {
         else {
             for (var i = 0; i < rs.rows.length; i++) { 
 
-                rowOutput += '<li class="contact clearfix"><div class="avatar"><img src="img/user_32.png" /></div>';
+                rowOutput += '<li class="contact clearfix"><div class="avatar"><img src="img/user.png" /></div>';
                 rowOutput += '<span class="timestamp">' + (rs.rows.item(i).FAV == 1 ? ('<img id="fav_' + rs.rows.item(i).ACCOUNT + '" width="16" height="16" alt="" src="/img/valid.gif" onclick="ssp.webdb.setCustomerFav(' + "'" + rs.rows.item(i).ACCOUNT + "'" + ')"/>') : ('<img id="fav_' + rs.rows.item(i).ACCOUNT + '" width="16" height="16" alt="" src="/img/add.png" onclick="ssp.webdb.setCustomerFav(' + "'" + rs.rows.item(i).ACCOUNT + "'" + ')"/>')) + '</span>';
                 rowOutput += '<a href="#" class="name"><span onclick="ssp.webdb.getCustomerByID(' + "'" + rs.rows.item(i).ACCOUNT + "'" + ');">' + rs.rows.item(i).NAME1 + '</span></a>';
                 rowOutput += '<div class="entry-meta">' + rs.rows.item(i).ACCOUNT + '</div></li>';

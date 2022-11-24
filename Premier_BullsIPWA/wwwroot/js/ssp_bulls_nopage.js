@@ -132,7 +132,7 @@ function loadBulls(tx, rs) {
 //			rowOutput += '<div id="bulllist' + listid + '"></div>';
 			rowOutput += '</ul>';
 //			var rectotal = Math.max(rs.rows.length,$('#bulllisttotal').html());
-			rowOutput += '<img src="img/arrow-curve-000-left.png" width="16" height="16" class="picto"> ' + rs.rows.length + ' items  ';
+			rowOutput += '<img src="img/arrowCurveLeft.png" width="16" height="16" class="picto"> ' + rs.rows.length + ' items  ';
 			rowOutput += '</div>'
 //			if (reccount != rectotal) moreOutput += '<button type="button" onClick="ssp.webdb.getBulls(\'' + currfilter + '\',' + Math.min((reccount),rectotal) + ');">Show More</button></div>';
         }

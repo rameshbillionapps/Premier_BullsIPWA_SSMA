@@ -4,24 +4,46 @@ ssp.webdb.getOrder = function (INVNUM, CANEDIT) {
 }
 
 ssp.webdb.getOrderItems = function (INVNUM) {
-    ssp.webdb.db.transaction(function (tx) {
-        tx.executeSql('SELECT * FROM tblSales WHERE SIORNM = "' + INVNUM + '" AND SIACT ="' + $('#acctid').html() + '" ORDER BY MODSTAMP', [], loadOrderItems, ssp.webdb.onError);
-    });
+    if (INVNUM)
+        ssp.webdb.db.transaction(function (tx) {
+            tx.exec('SELECT * FROM tblSales WHERE SIORNM = "' + INVNUM + '" AND SIACT ="' + $('#acctid').html() + '" ORDER BY MODSTAMP', [], loadOrderItems, ssp.webdb.onError);
+        });
+    else {
+        if (ssp.webdb.reportsIndicator == 'Pending') {
+            //[alaSQL: Added to show the Pending Items (ssp.webdb.getPendingItemsReport) after deleting an order. Currently, after deleting an item, order list shows 0 items.]
+            ssp.webdb.db.transaction(function (tx) {
+                tx.exec('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z") ORDER BY SIORNM,SINAM ', [], loadOrderItems, ssp.webdb.onError);
+            });
+        }
+        if (ssp.webdb.reportsIndicator == 'NitroFills') {
+            //[alaSQL: Added to show the NitroFills (ssp.webdb.getNitroFills) after deleting an order. Currently, after deleting an item, order list shows 0 items.]
+            ssp.webdb.db.transaction(function (tx) {
+                tx.exec('SELECT * FROM tblSales WHERE SITYPS = "N" ORDER BY SIDATO DESC ', [], loadOrderItems, ssp.webdb.onError);
+            });
+        }
+        if (ssp.webdb.debugIndicator == 'Debug') {
+            //[alaSQL: Debug Items(displayDebug) after deleting an order from Debug list on Settings Page.Currently, after deleting an item, the list does not get updated.]
+            ssp.webdb.db.transaction(function (tx) {
+                tx.exec('SELECT * FROM tblSales WHERE MOD = 1 ORDER BY SIORNM,SINAM ', [], displayDebug, ssp.webdb.onError);
+            });
+        }
+    }
 }
 
 ssp.webdb.printOrder = function (INVNUM) {
     ssp.webdb.db.transaction(function (tx) {
         var currenttime = Math.round(new Date().getTime() / 1000);
         loadOrderContentBlock(INVNUM);         // (INVNUM==0)?currenttime:INVNUM);
-        //tx.executeSql('SELECT tblSales.*,tblCustomers.* FROM tblSales INNER JOIN tblCustomers ON tblSales.SIACT = tblCustomers.ACCT_NO AND tblSales.SIREP = tblCustomers.TECH_NO WHERE SIORNM = "' + INVNUM + '" ORDER BY tblSales.MODSTAMP', [], orderPDF, ssp.webdb.onError);
-        tx.executeSql('SELECT * FROM tblSales WHERE SIORNM = ? ORDER BY MODSTAMP', [INVNUM],
-            function(tx,rs) {
-                tx.executeSql('SELECT * FROM tblCustomers WHERE ACCT_NO = ?', [rs.rows.item(0).SIACT],
-                    function (tx, custrs) {
-                        orderPDF(tx, rs, custrs);
-                    }, ssp.webdb.onError);
+        //tx.exec('SELECT tblSales.*,tblCustomers.* FROM tblSales INNER JOIN tblCustomers ON tblSales.SIACT = tblCustomers.ACCT_NO AND tblSales.SIREP = tblCustomers.TECH_NO WHERE SIORNM = "' + INVNUM + '" ORDER BY tblSales.MODSTAMP', [], orderPDF, ssp.webdb.onError);
+        tx.exec('SELECT * FROM tblSales WHERE SIORNM = ? ORDER BY MODSTAMP', [INVNUM],
+            function (rs) {
+                rs.length &&
+                    tx.exec('SELECT * FROM tblCustomers WHERE ACCT_NO = ?', [rs[0].SIACT],
+                        function (custrs) {
+                            orderPDF(rs, custrs);
+                        }, ssp.webdb.onError);
             }
-        , ssp.webdb.onError);
+            , ssp.webdb.onError);
     });
 }
 
@@ -30,14 +52,15 @@ ssp.webdb.printLabel = function (ordernum) {
     ssp.webdb.db.transaction(function (tx) {
         //var currenttime = Math.round(new Date().getTime() / 1000);
         //loadOrderContentBlock(INVNUM);
-        tx.executeSql('SELECT * FROM tblSales WHERE SIORNM = ? ORDER BY MODSTAMP', [ordernum],
-            function(tx,rs) {
-                tx.executeSql('SELECT * FROM tblCustomers WHERE ACCT_NO = ?', [rs.rows.item(0).SIACT],
-                    function (tx, custrs) {
-                        labelPDF(tx, rs, custrs);
-                    }, ssp.webdb.onError);
+        tx.exec('SELECT * FROM tblSales WHERE SIORNM = ? ORDER BY MODSTAMP', [ordernum],
+            function (rs) {
+                rs.length &&
+                    tx.exec('SELECT * FROM tblCustomers WHERE ACCT_NO = ?', [rs[0].SIACT],
+                        function (custrs) {
+                            labelPDF(rs, custrs);
+                        }, ssp.webdb.onError);
             }
-        , ssp.webdb.onError);
+            , ssp.webdb.onError);
     });
 }
 //JS121815 ***PrintLabel SSC End***
@@ -45,7 +68,7 @@ ssp.webdb.printLabel = function (ordernum) {
 
 ssp.webdb.printSyncItems = function () {
     ssp.webdb.db.transaction(function (tx) {
-        tx.executeSql('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z" OR SITYPS = "T") ORDER BY SIORNM,SINAM', [], syncPDF, ssp.webdb.onError);     /*JKS091018***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** OR SITYPS = "T"*/
+        tx.exec('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z" OR SITYPS = "T") ORDER BY SIORNM,SINAM', [], syncPDF, ssp.webdb.onError);     /*JKS091018***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** OR SITYPS = "T"*/
     });
 }
 
@@ -53,7 +76,7 @@ ssp.webdb.backupItems = function () {
     var formattedDay = new Date().getDay();
     if ((window.localStorage.getItem("ssp_autobackup") == 1) && (window.localStorage.getItem("ssp_lastbackup") != formattedDay)) {
         ssp.webdb.db.transaction(function (tx) {
-            tx.executeSql('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z" OR SITYPS = "T") ORDER BY SIORNM,SINAM', [], backupPDF, ssp.webdb.onError);       /*JKS100418***4.07->Added the following to include pending transfers to the BackUp Items function.*** OR SITYPS = "T"*/
+            tx.exec('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z" OR SITYPS = "T") ORDER BY SIORNM,SINAM', [], backupPDF, ssp.webdb.onError);       /*JKS100418***4.07->Added the following to include pending transfers to the BackUp Items function.*** OR SITYPS = "T"*/
         });
         window.localStorage.setItem('ssp_lastbackup', formattedDay);
     }
@@ -62,18 +85,20 @@ ssp.webdb.backupItems = function () {
 ssp.webdb.getBullMiscCodes = function () {
 
     ssp.webdb.db.transaction(function (tx) {
-        tx.executeSql('SELECT STOCK_NO,DESC FROM tblSupplies WHERE STOCK_NO Like "M2%" ORDER BY STOCK_NO', [],
-            	function (tx, rs) {
-        		    var rowOutput = '<label for="code" class="inline">Misc Code</label>';
-        		    rowOutput += '<select name="misccode" id="misccode" >';
-        		    rowOutput += '<option value=""></option>';
-        		    for (var i = 0; i < rs.rows.length; i++) {
-        		        rowOutput += '<option value="' + rs.rows.item(i).STOCK_NO + '">' + rs.rows.item(i).STOCK_NO + '-' + rs.rows.item(i).DESC + '</option>';
-        		    }
-        		    rowOutput += '</select>';
-        		    $('#bullmisc').html(rowOutput);
-        		}
-        		, ssp.webdb.onError);
+        tx.exec('SELECT STOCK_NO,[DESC] FROM tblSupplies WHERE STOCK_NO Like "M2%" ORDER BY STOCK_NO', [],
+            function (rs) {
+                if (rs.length) {
+                    var rowOutput = '<label for="code" class="inline">Misc Code</label>';
+                    rowOutput += '<select name="misccode" id="misccode" >';
+                    rowOutput += '<option value=""></option>';
+                    for (var i = 0; i < rs.length; i++) {
+                        rowOutput += '<option value="' + rs[i].STOCK_NO + '">' + rs[i].STOCK_NO + '-' + rs[i].DESC + '</option>';
+                    }
+                    rowOutput += '</select>';
+                    $('#bullmisc').html(rowOutput);
+                }
+            }
+            , ssp.webdb.onError);
     });
 
 }
@@ -82,7 +107,7 @@ ssp.webdb.deleteOrderItem = function (SIORNM, MODSTAMP) {
 
     if ($("#" + MODSTAMP).attr("class") == "button red") {
         ssp.webdb.db.transaction(function (tx) {
-            tx.executeSql('DELETE FROM tblSales WHERE SIORNM = ? AND MODSTAMP = ?', [SIORNM, MODSTAMP], ssp.webdb.getOrderItems($('#ordernum').html()), ssp.webdb.onError);
+            tx.exec('DELETE FROM tblSales WHERE SIORNM = ? AND MODSTAMP = ?', [SIORNM, MODSTAMP], () => ssp.webdb.getOrderItems($('#ordernum').html()), ssp.webdb.onError);
         });
     } else {
         $("#" + MODSTAMP).removeClass("button").addClass("button red");
@@ -101,7 +126,7 @@ ssp.webdb.modfrzdateOrderItem = function (ITEMDATE) {
 
 ssp.webdb.SaveOrderItemFrzDate = function () {
     if (isValidDateMDY($('#ModItemFrzDate').val())) {
-        $('#BullFreeze').html('<h3><div id="BullFreezeCode" style="display:inline-block">' + formatMDYPad($('#ModItemFrzDate').val()) + '</div>&nbsp;&nbsp;<div id="modfrzdate" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.modfrzdateOrderItem(\'' + $('#ModItemFrzDate').val() + '\')"><img src="img/calendar-day.png" width="16" height="16">Frz</a></div></h3>');
+        $('#BullFreeze').html('<h3><div id="BullFreezeCode" style="display:inline-block">' + formatMDYPad($('#ModItemFrzDate').val()) + '</div>&nbsp;&nbsp;<div id="modfrzdate" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.modfrzdateOrderItem(\'' + $('#ModItemFrzDate').val() + '\')"><img src="img/calendarDay.png" width="16" height="16">Frz</a></div></h3>');
     } else {
         $('#tab-bulls').removeBlockMessages().blockMessage('Invalid Date.', { type: 'error' });
     }
@@ -119,7 +144,7 @@ ssp.webdb.SaveOrderItemDate = function (SIORNM, MODSTAMP) {
 
     if (sspValidateDate(formatEpoch($("#ModItemDate").val()))) {
         ssp.webdb.db.transaction(function (tx) {
-            tx.executeSql('UPDATE tblSales SET SIDATO = ? WHERE SIORNM = ? AND MODSTAMP = ?', [formatEpoch($('#ModItemDate').val()), SIORNM, MODSTAMP], ssp.webdb.getOrderItems($('#ordernum').html()), ssp.webdb.onError);
+            tx.exec('UPDATE tblSales SET SIDATO = ? WHERE SIORNM = ? AND MODSTAMP = ?', [formatEpoch($('#ModItemDate').val()), SIORNM, MODSTAMP], () => ssp.webdb.getOrderItems($('#ordernum').html()), ssp.webdb.onError);
         });
         ssp.webdb.getOrderItems(SIORNM);
     } else {
@@ -131,10 +156,10 @@ ssp.webdb.setSalesItemBull = function (item, itemname, price1, price2, price3, r
     $('#BullCode').html(item);
     $('#BullName').html(itemname);
     if (frzdat !== '0' && frzdat !== 'null') {
-        $('#BullFreeze').html('<h3><div id="BullFreezeCode" style="display:inline-block">' + formatYYYYMMDDtoMDY(frzdat) + '</div>&nbsp;&nbsp;<div id="modfrzdate" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.modfrzdateOrderItem(\'' + formatYYYYMMDDtoMDY(frzdat) + '\')"><img src="img/calendar-day.png" width="16" height="16">Frz</a></div></h3>');
+        $('#BullFreeze').html('<h3><div id="BullFreezeCode" style="display:inline-block">' + formatYYYYMMDDtoMDY(frzdat) + '</div>&nbsp;&nbsp;<div id="modfrzdate" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.modfrzdateOrderItem(\'' + formatYYYYMMDDtoMDY(frzdat) + '\')"><img src="img/calendarDay.png" width="16" height="16">Frz</a></div></h3>');
     } else {
         if (window.localStorage.getItem("ssp_freeze") == 1) {
-            $('#BullFreeze').html('</br><div id="modfrzdate" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.modfrzdateOrderItem(\'' + formatDate(Math.round(new Date().getTime() / 1000)) + '\')"><img src="img/calendar-day.png" width="16" height="16">freeze</a></div>');
+            $('#BullFreeze').html('</br><div id="modfrzdate" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.modfrzdateOrderItem(\'' + formatDate(Math.round(new Date().getTime() / 1000)) + '\')"><img src="img/calendarDay.png" width="16" height="16">freeze</a></div>');
         }
     }
     if (typeof transfer == "undefined") {
@@ -152,7 +177,7 @@ ssp.webdb.setSalesItemBull = function (item, itemname, price1, price2, price3, r
                     $('#bullprice2').html('Disc20: ' + price2);
                     $('#bullprice3').html('Disc40: ' + price3);
                 }
-            //JKS072617***ADDED else if for SSP Beef breakdown pricing to be Retail/50 QTY/200 QTY***
+                //JKS072617***ADDED else if for SSP Beef breakdown pricing to be Retail/50 QTY/200 QTY***
             } else if (window.localStorage.getItem("ssp_projectid") == 'ssp') {
                 //JKS121817***ADDED if (type == 'B') else for Beef***
                 if (type == 'B') {
@@ -166,7 +191,7 @@ ssp.webdb.setSalesItemBull = function (item, itemname, price1, price2, price3, r
                 $('#bullprice2').html('Qty20: ' + price2);
                 $('#bullprice3').html('Qty50: ' + price3);
             }
-            $('#BullPrice').val($('.bullprice.green-keyword').html().split(':')[1].trim());
+            $('#BullPrice').val($('.bullprice.green-keyword').html()?.split(':')[1].trim());
             $('#bullperc').val($('#custdisc1').html());
         } else {
             $('#bullperc').val($('#custdisc1').html());
@@ -215,7 +240,7 @@ ssp.webdb.resetSalesItemBull = function () {
         if (window.localStorage.getItem("ssp_projectid") == 'sess') {
             $('#bullprice2').html('Price2: 0');
             $('#bullprice3').html('Price3: 0');
-        //JKS072617***ADDED else if for SSP Beef breakdown pricing to be Retail/50 QTY/200 QTY***
+            //JKS072617***ADDED else if for SSP Beef breakdown pricing to be Retail/50 QTY/200 QTY***
         } else {
             $('#bullprice2').html('Qty20: 0');
             $('#bullprice3').html('Qty50: 0');
@@ -292,7 +317,7 @@ ssp.webdb.orderAddBull = function () {
 
         //***JS 111615 Make SalesCode available for both Tech and Non-tech Modes***Begin
         // if (window.localStorage.getItem("ssp_projectid") == "ecss") {
-            // salescode = $('#SalesCode').val();
+        // salescode = $('#SalesCode').val();
         // }
         //***JS 111615 Make SalesCode available for both Tech and Non-tech Modes***End        
         if ($('#chkTechBreed').is(':checked')) {
@@ -302,11 +327,11 @@ ssp.webdb.orderAddBull = function () {
             bulllabor = $('#LaborPrice').val();
             cownote = $('#CowNote').val();
             // if (window.localStorage.getItem("ssp_projectid") == "ecss") {
-                // if (($('#SalesCode').val() > 1 && $('#SalesCode').val() < 10)) {
-                    // prevdate = $('#PrevDate').val();
-                    // psprevbullsessfallcredit = $('#PrevBullCode').val();
-                    // prevtechid = $('#PrevTechID').val();
-                // }
+            // if (($('#SalesCode').val() > 1 && $('#SalesCode').val() < 10)) {
+            // prevdate = $('#PrevDate').val();
+            // psprevbullsessfallcredit = $('#PrevBullCode').val();
+            // prevtechid = $('#PrevTechID').val();
+            // }
             // }
             if ((!bullname || bullname.length == 0) && $('.breeddisc.green-keyword').html() == "CUST SUPP") {
                 bullname = 'Customer Supplied';
@@ -316,7 +341,7 @@ ssp.webdb.orderAddBull = function () {
                 bullcustsupp = 1;
             }
             //JS092415***SSC Label Tag for Breeding in Tech Mode ONLY*** 
-            if(window.localStorage.getItem("ssp_projectid") == "ssc") {
+            if (window.localStorage.getItem("ssp_projectid") == "ssc") {
                 CowReg = $('#CowReg').val();
                 BullReg = $('#BullReg').val();
             }
@@ -343,8 +368,8 @@ ssp.webdb.orderAddBull = function () {
         //        salescode = 0;
         //    }
         //}
-        
-        
+
+
         //var sessfallcredit = 0;
         if (window.localStorage.getItem("ssp_projectid") == 'sess') {
             psprevbullsessfallcredit = (($('#chkFallCredit').is(':checked')) ? '1' : '0');
@@ -352,7 +377,7 @@ ssp.webdb.orderAddBull = function () {
         var psservicecall = '';
         if (window.localStorage.getItem("ssp_projectid") == 'ps') {
             psservicecall = $('#ServiceCall').val();
-        }   
+        }
         if ((!bullcode || bullcode.length == 0) && $('.breeddisc.green-keyword').html() != "CUST SUPP") {
             $('#tab-bulls').removeBlockMessages().blockMessage('Please select a bull code.', { type: 'error' });
         }
@@ -365,9 +390,9 @@ ssp.webdb.orderAddBull = function () {
         else if (!bullprice || bullprice.length == 0 || sspNaN(bullprice) || bullprice.substr(bullprice.length - 1, bullprice.length) == ".") {
             $('#tab-bulls').removeBlockMessages().blockMessage('Please enter a correct bull price.', { type: 'error' });
         }
-            //		else if ((bullretail-bullprice) > 15) {
-            //			$('#tab-bulls').removeBlockMessages().blockMessage('Cannot exceed $15 discount.', {type: 'error'});
-            //		} 
+        //		else if ((bullretail-bullprice) > 15) {
+        //			$('#tab-bulls').removeBlockMessages().blockMessage('Cannot exceed $15 discount.', {type: 'error'});
+        //		} 
         //else if ((!semencode || semencode.length == 0 || sspNaN(semencode)) && (window.localStorage.getItem("ssp_projectid") == "ecss")) {
         //    $('#tab-bulls').removeBlockMessages().blockMessage('Please enter a semen code.', { type: 'error' });
         //}  
@@ -390,7 +415,21 @@ ssp.webdb.orderAddBull = function () {
         //    $('#tab-bulls').removeBlockMessages().blockMessage('Please enter a previous tech ID.', { type: 'error' });
         //}        
         else {
-            tx.executeSql('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIPRC,SIREP,SIANM,SIRETL,SIPGA,SITYPI,SIOTH,SILVL4,SILIN,SILVL1,SILVL2,SILVL3,SILVL5,SICOW,SIARM,SISUP,FRZDAT,LOTNOT,MOD,MODSTAMP,BREEDTYPE,FRZYYYYMMDD) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, bulltype, bullcode, bullqty, bullname, bullprice, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), bullretail, (($('#chkPGA').is(':checked')) ? 1 : 0), prevdate, salescode, psprevbullsessfallcredit, prevtechid, bullmisc, taxrate1, taxrate2, psservicecall, cownote, bulllabor, bullcustsupp, bullfreeze, bullnote, 1, currenttime, beefon, bullfreezeYYYYMMDD], ssp.webdb.resetSalesItemBull(), ssp.webdb.onError);        //JKS040218***ADDED BREEDTYPE ? breeding***
+            bullqty = +bullqty; //[ala] converting string to number. Individual value insertion doesn't require this but it is needed when inserting a data object.
+            bullprice = +bullprice;
+            bullretail = +bullretail;
+            salescode = +salescode;
+            prevtechid = +prevtechid;
+            bulllabor = +bulllabor;
+            bullcustsupp = +bullcustsupp;
+            bullfreeze = +bullfreeze;
+
+            var salesDataStructure = { SIACT: null, SIINVL: null, SIORNM: null, SIINVO: null, SIDATO: null, SITIMO: null, SITYPS: null, SICOD: null, SIQTY: null, SIMATH: null, SINAM: null, SIPRC: null, SITYPI: null, SICOW: null, SIARM: null, SISTP: null, SIOTH: null, SILIN: null, SISEM: null, SIPOA: null, SISUP: null, SICDI: null, SIPGA: null, SIDSC: null, SIREP: null, SIANM: null, SILVL1: null, SILVL2: null, SILVL3: null, SILVL4: null, SILVL5: null, SIRETL: null, FRZDAT: null, LOTNOT: null, SIDATOYYYYMMDD: null, BREEDTYPE: null, FRZYYYYMMDD: null, MOD: null, MODSTAMP: null };
+            var currentData = { SIACT: $('#acctid').html(), SIORNM: $('#ordernum').html(), SIDATO: currenttime, SITYPS: bulltype, SICOD: bullcode, SIQTY: bullqty, SINAM: bullname, SIPRC: bullprice, SIREP: window.localStorage.getItem("ssp_TechID"), SIANM: $('#custname').html(), SIRETL: bullretail, SIPGA: (($('#chkPGA').is(':checked')) ? 1 : 0), SITYPI: prevdate, SIOTH: salescode, SILVL4: psprevbullsessfallcredit, SILIN: prevtechid, SILVL1: bullmisc, SILVL2: taxrate1, SILVL3: taxrate2, SILVL5: psservicecall, SICOW: cownote, SIARM: bulllabor, SISUP: bullcustsupp, FRZDAT: bullfreeze, LOTNOT: bullnote, MOD: 1, MODSTAMP: currenttime, BREEDTYPE: beefon, FRZYYYYMMDD: bullfreezeYYYYMMDD }
+
+            tx.exec('INSERT INTO tblSales VALUES ?', [{ ...salesDataStructure, ...currentData }], ssp.webdb.resetSalesItemBull, ssp.webdb.onError); //[ala] Using salesDataStructure to avoid the undefined values error in calculations done using WebSQL data. In WebSQL after inserting, rest object property remains null whereas in alasql it remains undefined.
+
+            // tx.exec('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIPRC,SIREP,SIANM,SIRETL,SIPGA,SITYPI,SIOTH,SILVL4,SILIN,SILVL1,SILVL2,SILVL3,SILVL5,SICOW,SIARM,SISUP,FRZDAT,LOTNOT,MOD,MODSTAMP,BREEDTYPE,FRZYYYYMMDD) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, bulltype, bullcode, bullqty, bullname, bullprice, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), bullretail, (($('#chkPGA').is(':checked')) ? 1 : 0), prevdate, salescode, psprevbullsessfallcredit, prevtechid, bullmisc, taxrate1, taxrate2, psservicecall, cownote, bulllabor, bullcustsupp, bullfreeze, bullnote, 1, currenttime, beefon, bullfreezeYYYYMMDD], ssp.webdb.resetSalesItemBull(), ssp.webdb.onError);        //JKS040218***ADDED BREEDTYPE ? breeding***
         }       //JKS092116***Added LOTNOT and bullnote for BullNote***
     });
     return false;
@@ -436,7 +475,7 @@ ssp.webdb.orderAddSupply = function () {
             custstate = $('#taxstate').html();
             ndtaxable = $('#SupplyStateTaxable').val().split(':')[1];
             mntaxable = $('#SupplyStateTaxable').val().split(':')[0];
-            if ((custstate == 'MN' && mntaxable == 'Y') || (custstate == 'ND' && ndtaxable =='Y')) {
+            if ((custstate == 'MN' && mntaxable == 'Y') || (custstate == 'ND' && ndtaxable == 'Y')) {
                 custrate1 = $('#custrate1').html() * 1;
                 custrate2 = $('#custrate2').html() * 1;
                 taxrate1 = custrate1 * (suppqty * suppprice);
@@ -462,7 +501,15 @@ ssp.webdb.orderAddSupply = function () {
             $('#tab-supplies').removeBlockMessages().blockMessage('Please enter a correct supply price.', { type: 'error' });
         }
         else {
-            tx.executeSql('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIPRC,SIREP,SIANM,SILVL2,SILVL3,LOTNOT,MOD,MODSTAMP) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, 'S', suppcode, suppqty, suppname, suppprice, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), taxrate1, taxrate2, supplot, 1, currenttime], ssp.webdb.resetSalesItemSupply(), ssp.webdb.onError);
+            suppqty = +suppqty; //[ala] converting string to number. Individual value insertion doesn't require this but it is needed when inserting a data object.
+            suppprice = +suppprice;
+
+            var salesDataStructure = { SIACT: null, SIINVL: null, SIORNM: null, SIINVO: null, SIDATO: null, SITIMO: null, SITYPS: null, SICOD: null, SIQTY: null, SIMATH: null, SINAM: null, SIPRC: null, SITYPI: null, SICOW: null, SIARM: null, SISTP: null, SIOTH: null, SILIN: null, SISEM: null, SIPOA: null, SISUP: null, SICDI: null, SIPGA: null, SIDSC: null, SIREP: null, SIANM: null, SILVL1: null, SILVL2: null, SILVL3: null, SILVL4: null, SILVL5: null, SIRETL: null, FRZDAT: null, LOTNOT: null, SIDATOYYYYMMDD: null, BREEDTYPE: null, FRZYYYYMMDD: null, MOD: null, MODSTAMP: null };
+            var currentData = { SIACT: $('#acctid').html(), SIORNM: $('#ordernum').html(), SIDATO: currenttime, SITYPS: 'S', SICOD: suppcode, SIQTY: suppqty, SINAM: suppname, SIPRC: suppprice, SIREP: window.localStorage.getItem("ssp_TechID"), SIANM: $('#custname').html(), SILVL2: taxrate1, SILVL3: taxrate2, LOTNOT: supplot, MOD: 1, MODSTAMP: currenttime }
+
+            tx.exec('INSERT INTO tblSales VALUES ?', [{ ...salesDataStructure, ...currentData }], ssp.webdb.resetSalesItemSupply, ssp.webdb.onError); //[ala] Using salesDataStructure to avoid the undefined values error in calculations done using WebSQL data. In WebSQL after inserting, rest object property remains null whereas in alasql it remains undefined.
+
+            //tx.exec('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIPRC,SIREP,SIANM,SILVL2,SILVL3,LOTNOT,MOD,MODSTAMP) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, 'S', suppcode, suppqty, suppname, suppprice, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), taxrate1, taxrate2, supplot, 1, currenttime], ssp.webdb.resetSalesItemSupply(), ssp.webdb.onError);
         }
     });
     return false;
@@ -502,7 +549,14 @@ ssp.webdb.orderAddNitro = function () {
             $('#tab-nitro').removeBlockMessages().blockMessage('Please enter a correct amount.', { type: 'error' });
         }
         else {
-            tx.executeSql('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIPRC,SIREP,SIANM,SILVL2,SILVL3,LOTNOT,MOD,MODSTAMP) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, 'N', 'N2Fill', nitroqty, 'Nitrogen Fill', nitroamt, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), taxrate1, taxrate2, nitronote, 1, currenttime], ssp.webdb.resetSalesItemNitro(), ssp.webdb.onError);
+            nitroqty = +nitroqty; //[ala] converting string to number. Individual value insertion doesn't require this but it is needed when inserting a data object.
+            nitroamt = +nitroamt;
+
+            var salesDataStructure = { SIACT: null, SIINVL: null, SIORNM: null, SIINVO: null, SIDATO: null, SITIMO: null, SITYPS: null, SICOD: null, SIQTY: null, SIMATH: null, SINAM: null, SIPRC: null, SITYPI: null, SICOW: null, SIARM: null, SISTP: null, SIOTH: null, SILIN: null, SISEM: null, SIPOA: null, SISUP: null, SICDI: null, SIPGA: null, SIDSC: null, SIREP: null, SIANM: null, SILVL1: null, SILVL2: null, SILVL3: null, SILVL4: null, SILVL5: null, SIRETL: null, FRZDAT: null, LOTNOT: null, SIDATOYYYYMMDD: null, BREEDTYPE: null, FRZYYYYMMDD: null, MOD: null, MODSTAMP: null };
+            var currentData = { SIACT: $('#acctid').html(), SIORNM: $('#ordernum').html(), SIDATO: currenttime, SITYPS: 'N', SICOD: 'N2Fill', SIQTY: nitroqty, SINAM: 'Nitrogen Fill', SIPRC: nitroamt, SIREP: window.localStorage.getItem("ssp_TechID"), SIANM: $('#custname').html(), SILVL2: taxrate1, SILVL3: taxrate2, LOTNOT: nitronote, MOD: 1, MODSTAMP: currenttime }
+
+            tx.exec('INSERT INTO tblSales VALUES ?', [{ ...salesDataStructure, ...currentData }], ssp.webdb.resetSalesItemNitro, ssp.webdb.onError); //[ala] Using salesDataStructure to avoid the undefined values error in calculations done using WebSQL data. In WebSQL after inserting, rest object property remains null whereas in alasql it remains undefined.
+            //tx.exec('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SINAM,SIPRC,SIREP,SIANM,SILVL2,SILVL3,LOTNOT,MOD,MODSTAMP) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, 'N', 'N2Fill', nitroqty, 'Nitrogen Fill', nitroamt, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), taxrate1, taxrate2, nitronote, 1, currenttime], ssp.webdb.resetSalesItemNitro(), ssp.webdb.onError);
         }
     });
     return false;
@@ -529,7 +583,14 @@ ssp.webdb.orderAddPOA = function () {
             $('#tab-poa').removeBlockMessages().blockMessage('Please enter a correct amount.', { type: 'error' });
         }
         else {
-            tx.executeSql('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SIMATH,SINAM,SIPRC,SIPOA,SIREP,SIANM,MOD,MODSTAMP) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, 'Z', 'POA', 1, $('#POACashCheck').val(), 'Paid on Account', 0, poaamt, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), 1, currenttime], ssp.webdb.resetSalesItemPOA(), ssp.webdb.onError);
+            poaamt = +poaamt; //[ala] converting string to number. Individual value insertion doesn't require this but it is needed when inserting a data object.
+
+            var salesDataStructure = { SIACT: null, SIINVL: null, SIORNM: null, SIINVO: null, SIDATO: null, SITIMO: null, SITYPS: null, SICOD: null, SIQTY: null, SIMATH: null, SINAM: null, SIPRC: null, SITYPI: null, SICOW: null, SIARM: null, SISTP: null, SIOTH: null, SILIN: null, SISEM: null, SIPOA: null, SISUP: null, SICDI: null, SIPGA: null, SIDSC: null, SIREP: null, SIANM: null, SILVL1: null, SILVL2: null, SILVL3: null, SILVL4: null, SILVL5: null, SIRETL: null, FRZDAT: null, LOTNOT: null, SIDATOYYYYMMDD: null, BREEDTYPE: null, FRZYYYYMMDD: null, MOD: null, MODSTAMP: null };
+            var currentData = { SIACT: $('#acctid').html(), SIORNM: $('#ordernum').html(), SIDATO: currenttime, SITYPS: 'Z', SICOD: 'POA', SIQTY: 1, SIMATH: $('#POACashCheck').val(), SINAM: 'Paid on Account', SIPRC: 0, SIPOA: poaamt, SIREP: window.localStorage.getItem("ssp_TechID"), SIANM: $('#custname').html(), MOD: 1, MODSTAMP: currenttime }
+
+            tx.exec('INSERT INTO tblSales VALUES ?', [{ ...salesDataStructure, ...currentData }], ssp.webdb.resetSalesItemPOA, ssp.webdb.onError); //[ala] Using salesDataStructure to avoid the undefined values error in calculations done using WebSQL data. In WebSQL after inserting, rest object property remains null whereas in alasql it remains undefined.
+
+            //tx.exec('INSERT INTO tblSales (SIACT,SIORNM,SIDATO,SITYPS,SICOD,SIQTY,SIMATH,SINAM,SIPRC,SIPOA,SIREP,SIANM,MOD,MODSTAMP) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$('#acctid').html(), $('#ordernum').html(), currenttime, 'Z', 'POA', 1, $('#POACashCheck').val(), 'Paid on Account', 0, poaamt, window.localStorage.getItem("ssp_TechID"), $('#custname').html(), 1, currenttime], ssp.webdb.resetSalesItemPOA(), ssp.webdb.onError);
         }
     });
     return false;
@@ -548,7 +609,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
     rowOutput += '<ul class="floating-tags">';
     rowOutput += '<li class="tag">Disc <div id="custdisc1" style="display:inline-block">' + $('#custdisc1').html() + '</div>%-$<div id="custdisc2" style="display:inline-block">' + $('#custdisc2').html() + '</div></li>';
     rowOutput += '<li class="tag-trans"><button class="medium" onclick="ssp.webdb.printOrder(' + "'" + INVNUM + "'" + ');"> order pdf </button></li>';
-    
+
     //JS100615 ***ECSS Switch for TechMode on Order Screen***Begin
     //JKS041819***Removed Switch for ECSS/CS on Customer Orders*** if (window.localStorage.getItem("ssp_projectid") == "ecss" || window.localStorage.getItem("ssp_projectid") == "mnss") {
     if (window.localStorage.getItem("ssp_projectid") == "mnss") {
@@ -556,7 +617,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
         rowOutput += '<h3 style="display:inline">Tech </h3>';
         rowOutput += '<input type="checkbox" name="techfunc" id="chkTechfunc" class="mini-switch float-left" title="Tech" ' + ((window.localStorage.getItem("ssp_techfunc") == 1) ? 'checked="checked"' : '') + '>';
         rowOutput += '</li>';
-    }    
+    }
     //JS100615 ***ECSS Switch for TechMode on Order Screen***End
 
     rowOutput += '</ul>';
@@ -573,7 +634,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
     rowOutput += '<ul class="controls-tabs js-tabs" class="float-right">';
     rowOutput += '<li' + ((window.localStorage.getItem("ssp_techfunc") != 1 || !CANEDIT) ? ' class="current">' : '>') + '<a href="#tab-items" title="Item List">Items</a></li>';
     if (CANEDIT) {
-        rowOutput += '<li><a href="#tab-nitro" title="Nitrogen">Nitrogren</a></li>';
+        rowOutput += '<li><a href="#tab-nitro" title="Nitrogen">Nitrogen</a></li>';
         rowOutput += '<li' + ((window.localStorage.getItem("ssp_techfunc") == 1) ? ' class="current">' : '>') + '<a href="#tab-bulls" title="Bulls">Bulls</a></li>';
         rowOutput += '<li><a href="#tab-supplies" title="Supplies">Supplies</a></li>';
         rowOutput += '<li><a href="#tab-poa" title="POA">POA</a></li>';
@@ -643,7 +704,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
             //}
             rowOutput += '<p>';
             rowOutput += '<ul class="keywords"><li id="breeddisc1" class="breeddisc">Cust %</li>';
-            if(window.localStorage.getItem("ssp_projectid") != 'mnss') {
+            if (window.localStorage.getItem("ssp_projectid") != 'mnss') {
                 rowOutput += '<li id="breeddisc2" class="breeddisc">&nbsp;&nbsp;&nbsp; PCP &nbsp;&nbsp;&nbsp;</li>';
             }
             rowOutput += '<li id="breeddisc3" class="breeddisc">Special %</li><li id="breedcustsupp" class="breeddisc">CUST SUPP</li></ul > ';
@@ -663,7 +724,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
             rowOutput += '<label for="CowNote" class="inline">Cow ID </label>';
             rowOutput += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="CowNote" id="CowNote" >';       /*JKS080818->4.03***Auto Fill Search switch*/
             rowOutput += '</p>';
-            
+
             //if (window.localStorage.getItem("ssp_projectid") == "ecss") {
             //    //rowOutput += '<p>';
             //    //rowOutput += '<label for="SalesCode" class="inline">Labor Code </label>';
@@ -684,7 +745,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
             //        rowOutput += '</p>';
             //    //}
             //}
-            
+
             if (window.localStorage.getItem("ssp_projectid") == 'ps') {
                 rowOutput += '<p>';
                 rowOutput += '<label for="ServiceCall" class="inline">Service Call </label>';
@@ -711,7 +772,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
             if (window.localStorage.getItem("ssp_projectid") == 'sess') {
                 rowOutput += '<ul class="keywords"><li id="bullprice1" class="bullprice">Retail: 0.00</li><li id="bullprice2" class="bullprice">Price2: 0.00</li><li id="bullprice3" class="bullprice">Price3: 0.00</li></ul>'
                 rowOutput += '<div class="float-right"><input type="checkbox" name="fallcred" id="chkFallCredit" ><label for="fallcred"><b>&nbsp;Fall Cred&nbsp;</b></label></div>';
-            //JKS072617***ADDED else if for SSP Beef breakdown pricing to be Retail/50 QTY/200 QTY***
+                //JKS072617***ADDED else if for SSP Beef breakdown pricing to be Retail/50 QTY/200 QTY***
             } else if (window.localStorage.getItem("ssp_projectid") == 'ssp') {
                 //JKS121817***ADDED if (window.localStorage.getItem("type") == 'B') else for Beef***
                 if (window.localStorage.getItem("type") == 'B') {
@@ -773,10 +834,10 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
         //JKS092616***End SupplyNote***
         //JKS092616***Begin Changed label Lot for SESS & SSC to Supply Note for All***
         //if (window.localStorage.getItem("ssp_projectid") == 'sess' || window.localStorage.getItem("ssp_projectid") == 'ssc') {
-            //rowOutput += '<p class="inline-mini-label">';
-            //rowOutput += '<label for="amt">Lot</label>';
-            //rowOutput += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="SupplyLot" id="SupplyLot" class="full-width">';       /*JKS080818->4.03***Auto Fill Search switch*/
-            //rowOutput += '</p>';
+        //rowOutput += '<p class="inline-mini-label">';
+        //rowOutput += '<label for="amt">Lot</label>';
+        //rowOutput += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="SupplyLot" id="SupplyLot" class="full-width">';       /*JKS080818->4.03***Auto Fill Search switch*/
+        //rowOutput += '</p>';
         //}
         //JKS092616***End Changed label Lot for SESS & SSC to Supply Note for All***
         rowOutput += '<p class="inline-mini-label" style="display:none">';
@@ -827,7 +888,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
     $('#tab-items').onTabShow(function () {
         $('#tab-items').removeBlockMessages();
         $('#lookuplist').html('');
-        ssp.webdb.getOrderItems($('#ordernum').html()); 
+        ssp.webdb.getOrderItems($('#ordernum').html());
     });
     $('#tab-nitro').onTabShow(function () {
         $('#tab-items').removeBlockMessages();
@@ -895,7 +956,7 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
     $('#chkPGA').click(function () {
         $('#bullperc').val(10);
     });
-    
+
     $('#BullCode').click(function () {
         $('#lookuplist').show();
         window.location.hash = '#lookuplist';
@@ -918,13 +979,13 @@ function loadOrderContentBlock(INVNUM, CANEDIT) {
 
 }
 
-function loadOrderItems(tx, rs) {
+function loadOrderItems(rs) {
     //try {
     var rowOutput = '';
     var ordertotal = 0;
     var tax1total = 0;
     var tax2total = 0;
-    if (rs.rows.length == 0) {
+    if (rs.length == 0) {
         rowOutput += '<div class="task with-legend with-padding" >';
         rowOutput += '<div class="legend"><img src="img/flag.png" width="16" height="16"> Order Item Listing</div>';
         rowOutput += '<div class="task-description"><h3>No Items.</h3>Please add an item for this order.</div>';
@@ -933,70 +994,72 @@ function loadOrderItems(tx, rs) {
     else {
         rowOutput += '<ul class="message" id="ordersummary">';
         rowOutput += '</ul>';
-        for (var i = 0; i < rs.rows.length; i++) {
+        for (var i = 0; i < rs.length; i++) {
+            //rs[i].SIARM = rs[i].SIARM || 0; //[ala] Added to prevent NaN in calculation
+
             rowOutput += '<div class="task with-legend">';
-            rowOutput += '<div class="legend"><img src="img/tags-label.png" width="16" height="16"> ' + rs.rows.item(i).SITYPS;
-            if (typeof reportoutput != "undefined") rowOutput += " - " + rs.rows.item(i).SIORNM;
+            rowOutput += '<div class="legend"><img src="img/tagsLabel.png" width="16" height="16"> ' + rs[i].SITYPS;
+            if (typeof reportoutput != "undefined") rowOutput += " - " + rs[i].SIORNM;
             rowOutput += '</div>';
             rowOutput += '<div class="task-description">';
             rowOutput += '<ul class="floating-tags">';
-            rowOutput += '<li class="tag-date" id="itemdate"> ' + formatDate(rs.rows.item(i).SIDATO) + '</li>';
-            rowOutput += '<li class="tag-money"> ' + ((rs.rows.item(i).SITYPS == "Z") ? rs.rows.item(i).SIPRC : rs.rows.item(i).SIQTY + '@' + rs.rows.item(i).SIPRC.toFixed(2)) + '</li> ';
+            rowOutput += '<li class="tag-date" id="itemdate"> ' + formatDate(rs[i].SIDATO) + '</li>';
+            rowOutput += '<li class="tag-money"> ' + ((rs[i].SITYPS == "Z") ? rs[i].SIPRC : rs[i].SIQTY + '@' + rs[i].SIPRC.toFixed(2)) + '</li> ';
             rowOutput += '</ul>';
-            rowOutput += '<h3>' + rs.rows.item(i).SINAM + '</h3>';
-            if (rs.rows.item(i).FRZYYYYMMDD && rs.rows.item(i).FRZYYYYMMDD != "0" && rs.rows.item(i).FRZYYYYMMDD != "null" && window.localStorage.getItem("ssp_freeze") == 1) {           /*JKS101518***4.08->Added the following to not display FRZ with 0 and NULL values in pending orders: && rs.rows.item(i).FRZYYYYMMDD != "0" && rs.rows.item(i).FRZYYYYMMDD != "null"*/
-                rowOutput += '<h3>' + formatYYYYMMDDtoMDY(rs.rows.item(i).FRZYYYYMMDD) + '</h3>';
+            rowOutput += '<h3>' + rs[i].SINAM + '</h3>';
+            if (rs[i].FRZYYYYMMDD && rs[i].FRZYYYYMMDD != "0" && rs[i].FRZYYYYMMDD != "null" && window.localStorage.getItem("ssp_freeze") == 1) {           /*JKS101518***4.08->Added the following to not display FRZ with 0 and NULL values in pending orders: && rs[i].FRZYYYYMMDD != "0" && rs[i].FRZYYYYMMDD != "null"*/
+                rowOutput += '<h3>' + formatYYYYMMDDtoMDY(rs[i].FRZYYYYMMDD) + '</h3>';
             }
-            rowOutput += '<h4>' + rs.rows.item(i).SICOD + '</h4>';
-            if (rs.rows.item(i).LOTNOT) {
-                rowOutput += '<h4>' + rs.rows.item(i).LOTNOT + '</h4>';
+            rowOutput += '<h4>' + rs[i].SICOD + '</h4>';
+            if (rs[i].LOTNOT) {
+                rowOutput += '<h4>' + rs[i].LOTNOT + '</h4>';
             }
-            //if  (window.localStorage.getItem("ssp_projectid") == "ecss" && rs.rows.item(i).SIOTH != null) {
-            //    rowOutput += '</br>Sales Code: <strong>' + rs.rows.item(i).SIOTH + '</strong>';
+            //if  (window.localStorage.getItem("ssp_projectid") == "ecss" && rs[i].SIOTH != null) {
+            //    rowOutput += '</br>Sales Code: <strong>' + rs[i].SIOTH + '</strong>';
             //}
-            if (rs.rows.item(i).SITYPS == "B") {
-                rowOutput += '</br>Cow ID: <strong>' + rs.rows.item(i).SICOW + '</strong>';
+            if (rs[i].SITYPS == "B") {
+                rowOutput += '</br>Cow ID: <strong>' + rs[i].SICOW + '</strong>';
                 //if (window.localStorage.getItem("ssp_projectid") == "ecss") {
-                //    //rowOutput += '</br>Labor Code: <strong>' + rs.rows.item(i).SISTP + '</strong>';
-                //    if ((rs.rows.item(i).SIOTH > 1 && rs.rows.item(i).SIOTH < 10)) {
-                //        rowOutput += '</br>Previous Date: <strong>' + rs.rows.item(i).SITYPI + '</strong>';
-                //        rowOutput += '</br>Previous Bull: <strong>' + rs.rows.item(i).SILVL4 + '</strong>';
-                //        rowOutput += '</br>Previous Tech ID: <strong>' + rs.rows.item(i).SILIN + '</strong>';
+                //    //rowOutput += '</br>Labor Code: <strong>' + rs[i].SISTP + '</strong>';
+                //    if ((rs[i].SIOTH > 1 && rs[i].SIOTH < 10)) {
+                //        rowOutput += '</br>Previous Date: <strong>' + rs[i].SITYPI + '</strong>';
+                //        rowOutput += '</br>Previous Bull: <strong>' + rs[i].SILVL4 + '</strong>';
+                //        rowOutput += '</br>Previous Tech ID: <strong>' + rs[i].SILIN + '</strong>';
                 //    }
                 //}
             }
             if (window.localStorage.getItem("ssp_projectid") == 'ps') {
-                if (rs.rows.item(i).SILVL5 != "undefined" && rs.rows.item(i).SILVL5 != null) {    //JKS071417***ADDED if statement to remove "undefined" and NULL "call:" results***
-                    rowOutput += '</br>call: ' + rs.rows.item(i).SILVL5;
+                if (rs[i].SILVL5 != "undefined" && rs[i].SILVL5 != null) {    //JKS071417***ADDED if statement to remove "undefined" and NULL "call:" results***
+                    rowOutput += '</br>call: ' + rs[i].SILVL5;
                 } else {
                     rowOutput += '</br>call: ';
                 }
             }
-            rowOutput += '<p><h3> $' + ((rs.rows.item(i).SITYPS == "Z") ? rs.rows.item(i).SIPOA.toFixed(2) : ((rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM).toFixed(2)) + '</h3></p>';
-            if (typeof reportoutput != "undefined") rowOutput += rs.rows.item(i).SIANM;
-            ordertotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM
-            
-            if (rs.rows.item(i).MOD) {
-                rowOutput += '<div class="align-right"><a href="javascript:void(0)" class="button" id="' + rs.rows.item(i).MODSTAMP + '" title="delete" onclick="ssp.webdb.deleteOrderItem(' + "'" + rs.rows.item(i).SIORNM + "'," + rs.rows.item(i).MODSTAMP + ')"><img src="img/bin.png" width="16" height="16"></a>';
-                if ((window.localStorage.getItem("ssp_projectid") == "ssc") && (window.localStorage.getItem("ssp_techfunc") == 1) && (rs.rows.item(i).SITYPS == "B")) {
-                   rowOutput += '&nbsp;&nbsp;<a href="javascript:void(0)" class="button" id="' + rs.rows.item(i).MODSTAMP + '" title="label" onclick="labelForm(' + "'" + formatDate(rs.rows.item(i).SIDATO) + "','" + rs.rows.item(i).SIORNM + "','" + rs.rows.item(i).SICOW + "','" + rs.rows.item(i).SICOD + "-" + rs.rows.item(i).SINAM + "','" + rs.rows.item(i).LOTNOT + "'" + ')"><img src="img/tags-label.png" width="16" height="16"></a>';
+            rowOutput += '<p><h3> $' + ((rs[i].SITYPS == "Z") ? rs[i].SIPOA.toFixed(2) : ((rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM).toFixed(2)) + '</h3></p>';
+            if (typeof reportoutput != "undefined") rowOutput += rs[i].SIANM;
+            ordertotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM
+
+            if (rs[i].MOD) {
+                rowOutput += '<div class="align-right"><a href="javascript:void(0)" class="button" id="' + rs[i].MODSTAMP + '" title="delete" onclick="ssp.webdb.deleteOrderItem(' + "'" + rs[i].SIORNM + "'," + rs[i].MODSTAMP + ')"><img src="img/bin.png" width="16" height="16"></a>';
+                if ((window.localStorage.getItem("ssp_projectid") == "ssc") && (window.localStorage.getItem("ssp_techfunc") == 1) && (rs[i].SITYPS == "B")) {
+                    rowOutput += '&nbsp;&nbsp;<a href="javascript:void(0)" class="button" id="' + rs[i].MODSTAMP + '" title="label" onclick="labelForm(' + "'" + formatDate(rs[i].SIDATO) + "','" + rs[i].SIORNM + "','" + rs[i].SICOW + "','" + rs[i].SICOD + "-" + rs[i].SINAM + "','" + rs[i].LOTNOT + "'" + ')"><img src="img/tagsLabel.png" width="16" height="16"></a>';
                 }
-                
-            
-                rowOutput += '&nbsp;&nbsp;<div id="moddate' + rs.rows.item(i).MODSTAMP + '" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.moddateOrderItem(' + "'" + rs.rows.item(i).SIORNM + "'," + rs.rows.item(i).MODSTAMP + ",'" + formatDate(rs.rows.item(i).SIDATO) + "'" + ')"><img src="img/calendar-day.png" width="16" height="16"></a></div></div>';
+
+
+                rowOutput += '&nbsp;&nbsp;<div id="moddate' + rs[i].MODSTAMP + '" style="display:inline-block"><a href="javascript:void(0)" class="button" title="moddate" onclick="ssp.webdb.moddateOrderItem(' + "'" + rs[i].SIORNM + "'," + rs[i].MODSTAMP + ",'" + formatDate(rs[i].SIDATO) + "'" + ')"><img src="img/calendarDay.png" width="16" height="16"></a></div></div>';
             }
 
             rowOutput += '</div>';
             rowOutput += '</div>';
-            tax1total += rs.rows.item(i).SILVL2 * 1;
-            tax2total += rs.rows.item(i).SILVL3 * 1;
+            tax1total += rs[i].SILVL2 * 1;
+            tax2total += rs[i].SILVL3 * 1;
         }
         rowOutput += '</div>';
         if ((window.localStorage.getItem("ssp_projectid") == "ssc") && (window.localStorage.getItem("ssp_techfunc") == 1)) {
             rowOutput += '<div id="labelform"></div>'
         }
         //rowOutput += '<ul class="message" id="ordersummary">';
-        //rowOutput += '<li><img src="img/arrow-curve-000-left.png" width="16" height="16" class="picto">' + i + ' Items on ' + formatDate(rs.rows.item(i-1).SIDATO) + ' for ' + ordertotal.toFixed(2) + '</li>';
+        //rowOutput += '<li><img src="img/arrowCurveLeft.png" width="16" height="16" class="picto">' + i + ' Items on ' + formatDate(rs.rows.item(i-1).SIDATO) + ' for ' + ordertotal.toFixed(2) + '</li>';
         //if (window.localStorage.getItem("ssp_projectid") == "ssc") {
         //    rowOutput += '<li>Total Taxes: ' + (tax1total + tax2total).toFixed(2) + '</li>';
         //}
@@ -1006,7 +1069,7 @@ function loadOrderItems(tx, rs) {
     $('#orderitems').html(rowOutput);
     var summaryOutput = '';
     if (i > 0) {
-        summaryOutput += '<li><img src="img/arrow-curve-000-left.png" width="16" height="16" class="picto">' + i + ' Items on ' + formatDate(rs.rows.item(i - 1).SIDATO) + ' for ' + ordertotal.toFixed(2) + '</li>';
+        summaryOutput += '<li><img src="img/arrowCurveLeft.png" width="16" height="16" class="picto">' + i + ' Items on ' + formatDate(rs[i - 1].SIDATO) + ' for ' + ordertotal.toFixed(2) + '</li>';
     }
     if ((tax1total + tax2total) > 0) {
         summaryOutput += '<li>Plus Taxes: ' + (tax1total + tax2total).toFixed(2) + '</li>';
@@ -1018,8 +1081,8 @@ function loadOrderItems(tx, rs) {
     //}
 }
 
-function labelForm(orderdate,ordernum,cowname,bullname,ordernote) {
-    
+function labelForm(orderdate, ordernum, cowname, bullname, ordernote) {
+
     var divContent = '<section id="login-block">';
     divContent += '<div class="block-border form block-content">'; //<form class="form block-content" >';
 
@@ -1066,736 +1129,736 @@ function labelForm(orderdate,ordernum,cowname,bullname,ordernote) {
     window.location.hash = '#labelform';
 }
 //JKS120315 ***SSC Label PDF Begin***
-function labelPDF(tx, rs, custrs) {
+function labelPDF(rs, custrs) {
     //PDFLocalTest comment out here to... for local test
-// document.addEventListener("deviceready", onDeviceReady, false);
+    // document.addEventListener("deviceready", onDeviceReady, false);
 
-// function onDeviceReady() {
-//     //request the persistent file system
-//     window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
-// }
+    // function onDeviceReady() {
+    //     //request the persistent file system
+    //     window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
+    // }
 
-// function gotFS(fileSystem) {
-//     var path = window.localStorage.getItem('ssp_orderpdf') + rs.rows.item(0).SIORNM + ".pdf";
-//     fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
+    // function gotFS(fileSystem) {
+    //     var path = window.localStorage.getItem('ssp_orderpdf') + rs[0].SIORNM + ".pdf";
+    //     fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
 
-//     function gotFileEntry(fileEntry) {
-//         fileEntry.createWriter(gotFileWriter, fail);
-//         function gotFileWriter(writer) {
+    //     function gotFileEntry(fileEntry) {
+    //         fileEntry.createWriter(gotFileWriter, fail);
+    //         function gotFileWriter(writer) {
     //PDFLocalTest ...here for local pdf test - see below
-                var homeHeader = 'Select Sires Genervations, Inc.';
-                var addr1Header = 'RR 3 P.O. Box 489 / 2 Industrial Road, Kemptville, Ontario K0G 1J0';
-                var addr2Header = 'Phone: (613) 258-3800  FAX: (613) 258-7257  e-mail: ssgi@selectgen.com';
+    var homeHeader = 'Select Sires Genervations, Inc.';
+    var addr1Header = 'RR 3 P.O. Box 489 / 2 Industrial Road, Kemptville, Ontario K0G 1J0';
+    var addr2Header = 'Phone: (613) 258-3800  FAX: (613) 258-7257  e-mail: ssgi@selectgen.com';
 
-                var doc = new jsPDF();
-                var top = 20;   //JKS021516  ***20->18*** //JKS021816 ***18->20***
-                
-                //JKS122215 ***Top Leftside Begin***
-                doc.setFontSize(16);
-                doc.text(18, top, homeHeader);  //JS021516  ***10->18***
-                doc.text(18, (top), "_________________________");
+    var doc = new jsPDF();
+    var top = 20;   //JKS021516  ***20->18*** //JKS021816 ***18->20***
 
-                doc.setFontSize(8);
-                doc.text(18, (top + 5), addr1Header);   //JS021516  ***10->18***
-                doc.text(18, (top + 8), addr2Header);   //JS021516  ***10->18***
+    //JKS122215 ***Top Leftside Begin***
+    doc.setFontSize(16);
+    doc.text(18, top, homeHeader);  //JS021516  ***10->18***
+    doc.text(18, (top), "_________________________");
 
-                doc.setFontSize(12);
-                doc.text(18, (top + 18), "Customer");   //JS021516  ***10->18***
-                doc.text(18, (top + 18), "________");   //JS021516  ***10->18***
-                doc.setFontSize(10);
-                doc.text(18, (top + 23), 'ID:');    //JS021516  ***10->18***
-                doc.text(34, (top + 23), custrs.rows.item(0).ACCT_NO);  //JS021516  ***26->34***
-                doc.text(18, (top + 28), 'Name:');  //JS021516  ***10->18***
-                doc.text(34, (top + 28), custrs.rows.item(0).NAME);     //JS021516  ***26->34***
-                doc.text(34, (top + 33), custrs.rows.item(0).ADDR2);    //JS021516  ***26->34***
-                doc.text(34, (top + 38), custrs.rows.item(0).CITY + ', ' + custrs.rows.item(0).STATE + ' ' + custrs.rows.item(0).ZIP);  //JS021516  ***26->34***
-                doc.setFontSize(12);
-                doc.text(18, (top + 45), "Order");  //JS021516  ***10->18***
-                doc.text(18, (top + 45), "_____");  //JS021516  ***10->18***
-                doc.setFontSize(10);
-                doc.text(18, (top + 50), 'Number:');    //JS021516  ***10->18***
-                doc.text(39, (top + 50), rs.rows.item(0).SIORNM);   //JS021516  ***31->39***
-                doc.text(18, (top + 55), 'Date:');   //JS021516  ***10->18***
-                doc.text(39, (top + 55), formatDate(rs.rows.item(0).SIDATO));   //JS021516  ***31->39***
-                doc.text(18, (top + 65), 'Cow Name:');       //JS021516  ***10->18***
-                doc.text(39, (top + 65), $('#labelcow').val());       //JS021516  ***10->18***
-                doc.text(18, (top + 70), 'Cow Reg #');    //JS021516  ***10->18***
-                doc.text(39, (top + 70), $('#labelcowreg').val());    //JS021516  ***10->18***
-                doc.text(18, (top + 75), 'Bull Name:');     //JS021516  ***10->18***
-                doc.text(39, (top + 75), $('#labelbull').val());     //JS021516  ***10->18***
-                doc.text(18, (top + 80), 'Note:');    //JS021516  ***10->18***
-                doc.text(39, (top + 80), $('#ordernote').val());    //JS021516  ***10->18***
-                doc.text(18, (top + 85), 'Bull Reg #');     //JS021516  ***10->18***
-                doc.text(39, (top + 85), $('#labelbullreg').val());     //JS021516  ***10->18***
-                doc.text(18, (top + 90), 'Tech:');     //JS021516  ***10->18***
-                doc.text(39, (top + 90), rs.rows.item(0).SIREP);     //JS021516  ***10->18***
-                doc.text(18, (top + 95), 'Breeding #');     //JKS030816 ***Breed Count per Norm***
-                doc.text(39, (top + 95), $('#labelbreed').val());     //JKS030816 ***Breed Count per Norm***
-                //JKS122215 ***Top Leftside End***
+    doc.setFontSize(8);
+    doc.text(18, (top + 5), addr1Header);   //JS021516  ***10->18***
+    doc.text(18, (top + 8), addr2Header);   //JS021516  ***10->18***
 
-                //JKS021816 ***Bottom Leftside Begin***
-                doc.setFontSize(10);
-                doc.text(25, (235.25), 'Order #         ' + $('#labelnum').val());           //JS021516  ***15->23   232.5->219
-                doc.text(77, (235.25), 'Date: ' + $('#labeldate').val());                   //JS021516  ***70->78   232.5->219
-                doc.text(25, (239.75), 'Cow Name:   ' + $('#labelcow').val());                //JS021516  ***15->23   237.5->224
-                doc.text(25, (244.25), 'Cow Reg #    ' + $('#labelcowreg').val());             //JS021516  ***15->23   242.5->229
-                doc.text(25, (248.75), 'Bull Name:    ' + $('#labelbull').val());              //JS021516  ***15->23   247.5->234
-                doc.text(25, (253.25), 'Note: ' + $('#ordernote').val());              //JS021516  ***15->23   252.5->239
-                doc.text(25, (257.75), 'Bull Reg #     ' + $('#labelbullreg').val());          //JS021516  ***15->23   257.5->244
-                doc.text(25, (262.25), 'Tech:             ' + $('#labeltech').val());          //JS021516  ***15->23   262.5->249
-                doc.text(60, (262.25), 'Breeding # ' + $('#labelbreed').val());     //JKS030716 ***Breed Count per Norm***
-                //JKS021816 ***Bottom Leftside End***
+    doc.setFontSize(12);
+    doc.text(18, (top + 18), "Customer");   //JS021516  ***10->18***
+    doc.text(18, (top + 18), "________");   //JS021516  ***10->18***
+    doc.setFontSize(10);
+    doc.text(18, (top + 23), 'ID:');    //JS021516  ***10->18***
+    doc.text(34, (top + 23), custrs[0].ACCT_NO);  //JS021516  ***26->34***
+    doc.text(18, (top + 28), 'Name:');  //JS021516  ***10->18***
+    doc.text(34, (top + 28), custrs[0].NAME);     //JS021516  ***26->34***
+    doc.text(34, (top + 33), custrs[0].ADDR2);    //JS021516  ***26->34***
+    doc.text(34, (top + 38), custrs[0].CITY + ', ' + custrs[0].STATE + ' ' + custrs[0].ZIP);  //JS021516  ***26->34***
+    doc.setFontSize(12);
+    doc.text(18, (top + 45), "Order");  //JS021516  ***10->18***
+    doc.text(18, (top + 45), "_____");  //JS021516  ***10->18***
+    doc.setFontSize(10);
+    doc.text(18, (top + 50), 'Number:');    //JS021516  ***10->18***
+    doc.text(39, (top + 50), rs[0].SIORNM);   //JS021516  ***31->39***
+    doc.text(18, (top + 55), 'Date:');   //JS021516  ***10->18***
+    doc.text(39, (top + 55), formatDate(rs[0].SIDATO));   //JS021516  ***31->39***
+    doc.text(18, (top + 65), 'Cow Name:');       //JS021516  ***10->18***
+    doc.text(39, (top + 65), $('#labelcow').val());       //JS021516  ***10->18***
+    doc.text(18, (top + 70), 'Cow Reg #');    //JS021516  ***10->18***
+    doc.text(39, (top + 70), $('#labelcowreg').val());    //JS021516  ***10->18***
+    doc.text(18, (top + 75), 'Bull Name:');     //JS021516  ***10->18***
+    doc.text(39, (top + 75), $('#labelbull').val());     //JS021516  ***10->18***
+    doc.text(18, (top + 80), 'Note:');    //JS021516  ***10->18***
+    doc.text(39, (top + 80), $('#ordernote').val());    //JS021516  ***10->18***
+    doc.text(18, (top + 85), 'Bull Reg #');     //JS021516  ***10->18***
+    doc.text(39, (top + 85), $('#labelbullreg').val());     //JS021516  ***10->18***
+    doc.text(18, (top + 90), 'Tech:');     //JS021516  ***10->18***
+    doc.text(39, (top + 90), rs[0].SIREP);     //JS021516  ***10->18***
+    doc.text(18, (top + 95), 'Breeding #');     //JKS030816 ***Breed Count per Norm***
+    doc.text(39, (top + 95), $('#labelbreed').val());     //JKS030816 ***Breed Count per Norm***
+    //JKS122215 ***Top Leftside End***
 
-                //JKS021816 ***Bottom Rightside Begin***
-                doc.setFontSize(10);
-                doc.text(114, (235.25), 'Order #         ' + $('#labelnum').val());          //JS021516  ***113->115   232.5->219
-                doc.text(166, (235.25), 'Date: ' + $('#labeldate').val());        //JS021516  ***168->170   232.5->219
-                doc.text(114, (239.75), 'Cow Name:   ' + $('#labelcow').val());
-                doc.text(114, (244.25), 'Cow Reg #    ' + $('#labelcowreg').val());
-                doc.text(114, (248.75), 'Bull Name:    ' + $('#labelbull').val());
-                doc.text(114, (253.25), 'Note: ' + $('#ordernote').val());
-                doc.text(114, (257.75), 'Bull Reg #     ' + $('#labelbullreg').val());   
-                doc.text(114, (262.25), 'Tech:             ' + $('#labeltech').val());
-                doc.text(149, (262.25), 'Breeding # ' + $('#labelbreed').val());     //JKS030716 ***Breed Count per Norm***      
-                //JKS021816 ***Bottom Rightside End***
+    //JKS021816 ***Bottom Leftside Begin***
+    doc.setFontSize(10);
+    doc.text(25, (235.25), 'Order #         ' + $('#labelnum').val());           //JS021516  ***15->23   232.5->219
+    doc.text(77, (235.25), 'Date: ' + $('#labeldate').val());                   //JS021516  ***70->78   232.5->219
+    doc.text(25, (239.75), 'Cow Name:   ' + $('#labelcow').val());                //JS021516  ***15->23   237.5->224
+    doc.text(25, (244.25), 'Cow Reg #    ' + $('#labelcowreg').val());             //JS021516  ***15->23   242.5->229
+    doc.text(25, (248.75), 'Bull Name:    ' + $('#labelbull').val());              //JS021516  ***15->23   247.5->234
+    doc.text(25, (253.25), 'Note: ' + $('#ordernote').val());              //JS021516  ***15->23   252.5->239
+    doc.text(25, (257.75), 'Bull Reg #     ' + $('#labelbullreg').val());          //JS021516  ***15->23   257.5->244
+    doc.text(25, (262.25), 'Tech:             ' + $('#labeltech').val());          //JS021516  ***15->23   262.5->249
+    doc.text(60, (262.25), 'Breeding # ' + $('#labelbreed').val());     //JKS030716 ***Breed Count per Norm***
+    //JKS021816 ***Bottom Leftside End***
+
+    //JKS021816 ***Bottom Rightside Begin***
+    doc.setFontSize(10);
+    doc.text(114, (235.25), 'Order #         ' + $('#labelnum').val());          //JS021516  ***113->115   232.5->219
+    doc.text(166, (235.25), 'Date: ' + $('#labeldate').val());        //JS021516  ***168->170   232.5->219
+    doc.text(114, (239.75), 'Cow Name:   ' + $('#labelcow').val());
+    doc.text(114, (244.25), 'Cow Reg #    ' + $('#labelcowreg').val());
+    doc.text(114, (248.75), 'Bull Name:    ' + $('#labelbull').val());
+    doc.text(114, (253.25), 'Note: ' + $('#ordernote').val());
+    doc.text(114, (257.75), 'Bull Reg #     ' + $('#labelbullreg').val());
+    doc.text(114, (262.25), 'Tech:             ' + $('#labeltech').val());
+    doc.text(149, (262.25), 'Breeding # ' + $('#labelbreed').val());     //JKS030716 ***Breed Count per Norm***      
+    //JKS021816 ***Bottom Rightside End***
 
     //doc.output('datauri');    //JS021716PDFLocalTest
     //PDFLocalTest comment out from here... (uncomment the line above)
-    doc.save($("#labelnum").val().replace('.','_') + '_' + Math.round(new Date().getTime() / 1000) + '_lab.pdf');
-//                 writer.write(doc.output());
-//                 //JKS030216 ***BEGIN-Replaced FileOpener with FileOpener2***
-//                 cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
-//                     'application/pdf',
-//                     {
-//                         error: function (e) {
-//                             console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
-//                         },
-//                         success: function () {
-//                             console.log('file opened successfully');
-//                         }
-//                     }
-//                 );
-//                 //JKS030216 ***END-Replaced FileOpener with FileOpener2***
-// //JKS022916 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
-//             }
-//         }
-//    } 
+    doc.save($("#labelnum").val().replace('.', '_') + '_' + Math.round(new Date().getTime() / 1000) + '_lab.pdf');
+    //                 writer.write(doc.output());
+    //                 //JKS030216 ***BEGIN-Replaced FileOpener with FileOpener2***
+    //                 cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
+    //                     'application/pdf',
+    //                     {
+    //                         error: function (e) {
+    //                             console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
+    //                         },
+    //                         success: function () {
+    //                             console.log('file opened successfully');
+    //                         }
+    //                     }
+    //                 );
+    //                 //JKS030216 ***END-Replaced FileOpener with FileOpener2***
+    // //JKS022916 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
+    //             }
+    //         }
+    //    } 
     //PDFLocalTest ...to here
-}                                       
+}
 //JKS120315 ***SSC Label PDF End***
 
-function orderPDF(tx, rs, custrs) {
+function orderPDF(rs, custrs) {
     //PDFLocalTest comment out here to... for local test
-//   document.addEventListener("deviceready", onDeviceReady, false);
-//
-//    function onDeviceReady() {
-//        //request the persistent file system
-//        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
-//    }
-//
-//    function gotFS(fileSystem) {
-//        var path = window.localStorage.getItem('ssp_orderpdf') + rs.rows.item(0).SIORNM + ".pdf";
-//        fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
-//
-//        function gotFileEntry(fileEntry) {
-//            fileEntry.createWriter(gotFileWriter, fail);
-//            function gotFileWriter(writer) {
+    //   document.addEventListener("deviceready", onDeviceReady, false);
+    //
+    //    function onDeviceReady() {
+    //        //request the persistent file system
+    //        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
+    //    }
+    //
+    //    function gotFS(fileSystem) {
+    //        var path = window.localStorage.getItem('ssp_orderpdf') + rs[0].SIORNM + ".pdf";
+    //        fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
+    //
+    //        function gotFileEntry(fileEntry) {
+    //            fileEntry.createWriter(gotFileWriter, fail);
+    //            function gotFileWriter(writer) {
     //PDFLocalTest ...here for local pdf test - see below
-				var homeHeader = 'Premier Select Sires, Inc.';
-                var addr1Header = '1 Stony Mountain Road, Tunkhannock, PA 18657';
-                var addr2Header = 'Phone: (570)836-3168   FAX: (570)836-1490  e-mail: office@premierselect.com';
-                var reply1Header = 'Tunkhannock office: 1 Stony Mountain Road, Tunkhannock, PA 18657';
-                var reply2Header = 'Phone: (570)836-3168   FAX: (570)836-1490';
+    var homeHeader = 'Premier Select Sires, Inc.';
+    var addr1Header = '1 Stony Mountain Road, Tunkhannock, PA 18657';
+    var addr2Header = 'Phone: (570)836-3168   FAX: (570)836-1490  e-mail: office@premierselect.com';
+    var reply1Header = 'Tunkhannock office: 1 Stony Mountain Road, Tunkhannock, PA 18657';
+    var reply2Header = 'Phone: (570)836-3168   FAX: (570)836-1490';
 
-                switch (window.localStorage.getItem("ssp_projectid")) {
-                    case 'sess':
-                        homeHeader = 'Premier Select Sires, Inc.';
-                        addr1Header = '3789 Old Port Royal Road, Spring Hill, TN 37174';
-                        addr2Header = 'Phone: (931) 489-2020   FAX: (931) 489-2026  e-mail: sess.office@premierselect.com';
-                        break;
-                    case 'ssc':
-                        homeHeader = 'Select Sires Genervations, Inc.';
-                        addr1Header = 'RR 3 P.O. Box 489 / 2 Industrial Road, Kemptville, Ontario K0G 1J0';
-                        addr2Header = 'Phone: (613) 258-3800   FAX: (613) 258-7257  e-mail: ssgi@selectgen.com';
-                        break;
-                    case 'ps':
-                        homeHeader = 'Select Sires MidAmerica';
-                        addr4Header = '41W 394 U.S. Highway 20, Hampshire, IL 60140';
-                        addr5Header = 'Phone: (847) 464-5281';
-                        addr1Header = '833 West 400 North, Logan UT 84321';
-                        addr2Header = 'Phone (435) 752-2022';
-                        break;
-                    case 'ecss':
-                        homeHeader = 'CentralStar';
-                        addr1Header = 'P.O. Box 191, Waupun, WI 53963-0191';
-                        addr2Header = 'P.O. Box 23157, Lansing, MI 48909-3157';
-                        addr3Header = 'Phone: 800.631.3510  Website: www.mycentralstar.com';
-                        //addr3Header = 'Phone: (920) 324-3505 Fax: (920) 324-5580  e-mail: info@ecselectsires.com';
-                        break;
-                    //JKS110916***Changed MNSS Order PDF Phone# to 320-259-6680 & Email to mnselect@mnss.coop.***
-                    //JKS092016***Added MNSS address to Orders PDF.***
-                    case 'mnss':
-                        homeHeader = 'Minnesota Select Sires';
-                        addr1Header = '6601 Gregory Park Road S, Saint Cloud, MN 56301';
-                        addr2Header = '(800) 795-1233 | (320) 259-6680       mnselect@mnss.coop | www.selectsires.com';
-                        break;
-                }
-                var doc = new jsPDF();
-                var top = 20;
+    switch (window.localStorage.getItem("ssp_projectid")) {
+        case 'sess':
+            homeHeader = 'Premier Select Sires, Inc.';
+            addr1Header = '3789 Old Port Royal Road, Spring Hill, TN 37174';
+            addr2Header = 'Phone: (931) 489-2020   FAX: (931) 489-2026  e-mail: sess.office@premierselect.com';
+            break;
+        case 'ssc':
+            homeHeader = 'Select Sires Genervations, Inc.';
+            addr1Header = 'RR 3 P.O. Box 489 / 2 Industrial Road, Kemptville, Ontario K0G 1J0';
+            addr2Header = 'Phone: (613) 258-3800   FAX: (613) 258-7257  e-mail: ssgi@selectgen.com';
+            break;
+        case 'ps':
+            homeHeader = 'Select Sires MidAmerica';
+            addr4Header = '41W 394 U.S. Highway 20, Hampshire, IL 60140';
+            addr5Header = 'Phone: (847) 464-5281';
+            addr1Header = '833 West 400 North, Logan UT 84321';
+            addr2Header = 'Phone (435) 752-2022';
+            break;
+        case 'ecss':
+            homeHeader = 'CentralStar';
+            addr1Header = 'P.O. Box 191, Waupun, WI 53963-0191';
+            addr2Header = 'P.O. Box 23157, Lansing, MI 48909-3157';
+            addr3Header = 'Phone: 800.631.3510  Website: www.mycentralstar.com';
+            //addr3Header = 'Phone: (920) 324-3505 Fax: (920) 324-5580  e-mail: info@ecselectsires.com';
+            break;
+        //JKS110916***Changed MNSS Order PDF Phone# to 320-259-6680 & Email to mnselect@mnss.coop.***
+        //JKS092016***Added MNSS address to Orders PDF.***
+        case 'mnss':
+            homeHeader = 'Minnesota Select Sires';
+            addr1Header = '6601 Gregory Park Road S, Saint Cloud, MN 56301';
+            addr2Header = '(800) 795-1233 | (320) 259-6680       mnselect@mnss.coop | www.selectsires.com';
+            break;
+    }
+    var doc = new jsPDF();
+    var top = 20;
 
-                doc.setFontSize(16);
-                doc.text(10, top, homeHeader);
-                doc.text(10, (top + .75), "___________________________");
+    doc.setFontSize(16);
+    doc.text(10, top, homeHeader);
+    doc.text(10, (top + .75), "___________________________");
 
-                doc.setFontSize(8);
-                doc.text(80, (top - 10), addr1Header);
-                doc.text(80, (top - 6.25), addr2Header);
-                if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
-                    doc.text(80, (top - 2.5), addr3Header);
-                }
-                if (window.localStorage.getItem("ssp_projectid") == 'ps') {
-                    doc.text(10, (top - 10), addr4Header);
-                    doc.text(10, (top - 6.25), addr5Header);
-                }
-                doc.setFontSize(10);
-                if (window.localStorage.getItem("ssp_projectid") == 'ssp') {
-                    doc.text(80, (top - 3), "REPLY TO:");
-                    doc.setFontSize(8);
-                    doc.text(100, (top - 3), reply1Header);
-                    doc.text(80, (top + .75), reply2Header);
-                }
+    doc.setFontSize(8);
+    doc.text(80, (top - 10), addr1Header);
+    doc.text(80, (top - 6.25), addr2Header);
+    if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
+        doc.text(80, (top - 2.5), addr3Header);
+    }
+    if (window.localStorage.getItem("ssp_projectid") == 'ps') {
+        doc.text(10, (top - 10), addr4Header);
+        doc.text(10, (top - 6.25), addr5Header);
+    }
+    doc.setFontSize(10);
+    if (window.localStorage.getItem("ssp_projectid") == 'ssp') {
+        doc.text(80, (top - 3), "REPLY TO:");
+        doc.setFontSize(8);
+        doc.text(100, (top - 3), reply1Header);
+        doc.text(80, (top + .75), reply2Header);
+    }
 
-                doc.setFontSize(12);
-                doc.text(10, (top + 10), "Customer");
-                doc.text(10, (top + 10.5), "________");
-                doc.setFontSize(10);
-                doc.text(10, (top + 15), 'ID:');
-                doc.text(25, (top + 15), custrs.rows.item(0).ACCT_NO);
-                doc.text(10, (top + 20), 'Name:');
-                doc.text(25, (top + 20), custrs.rows.item(0).NAME);
-                doc.text(25, (top + 25), custrs.rows.item(0).ADDR2);
-                doc.text(25, (top + 30), custrs.rows.item(0).CITY + ', ' + custrs.rows.item(0).STATE + ' ' + custrs.rows.item(0).ZIP);
-                doc.setFontSize(12);
-                if (window.localStorage.getItem("ssp_projectid") == 'sess') {
-                    doc.text(100, (top + 10), "Order/Invoice");
-                } else {
-                    doc.text(100, (top + 10), "Order");
-                }
-                doc.text(100, (top + 10.5), "____________");
-                doc.setFontSize(10);
-                doc.text(100, (top + 15), 'Number: ' + rs.rows.item(0).SIORNM);
-                doc.text(100, (top + 20), 'Date: ' + formatDate(rs.rows.item(0).SIDATO));
-                //JKS110916***Begin Added IfElse to MNSS Order PDF for Invoice# to display Order# as Invoice#.***
-                if (window.localStorage.getItem("ssp_projectid") == 'mnss') {
-                    doc.text(100, (top + 25), 'Invoice #: ' + rs.rows.item(0).SIORNM);
-                } else {
-                    doc.text(100, (top + 25), 'Invoice #: ' + ((rs.rows.item(0).SIINVO == null) ? '(use order #)' : rs.rows.item(0).SIINVO));
-                }
-                //JKS110916***End Added IfElse to MNSS Order PDF for Invoice# to display Order# as Invoice#.***
-                doc.setFontSize(12);
-                doc.text(10, (top + 35), "Items");
-                doc.text(10, (top + 35.5), "_____");
-                //JKS110916***Begin Added IfElse to MNSS Order PDF for Bull Code to be Item#.***
-                if (window.localStorage.getItem("ssp_projectid") == 'mnss') {
-                    doc.text(10, (top + 40), 'Item #');
-                } else {
-                    doc.text(10, (top + 40), 'Bull Code');
-                }
-                //JKS110916***End Added IfElse to MNSS Order PDF for Bull Code to be Item#.***
-                doc.text(15, (top + 45), 'Name');
-                if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
-                    //doc.text(90, (top + 45), 'Sales Code');
-                    //doc.text(90, (top + 45), 'Labor Code');
-                    doc.text(10, (top + 50), 'Previous: Date');
-                    doc.text(45, (top + 50), 'Bull Code');
-                    doc.text(70, (top + 50), 'Tech ID');
-                }
-                doc.text(120, (top + 40), 'Quantity');
-                doc.text(140, (top + 40), 'Amount');
-                doc.text(160, (top + 40), 'Total');
-                doc.text(10, (top + 50.5), "_____________________________________________________________________");
+    doc.setFontSize(12);
+    doc.text(10, (top + 10), "Customer");
+    doc.text(10, (top + 10.5), "________");
+    doc.setFontSize(10);
+    doc.text(10, (top + 15), 'ID:');
+    doc.text(25, (top + 15), custrs[0].ACCT_NO);
+    doc.text(10, (top + 20), 'Name:');
+    doc.text(25, (top + 20), custrs[0].NAME);
+    doc.text(25, (top + 25), custrs[0].ADDR2);
+    doc.text(25, (top + 30), custrs[0].CITY + ', ' + custrs[0].STATE + ' ' + custrs[0].ZIP);
+    doc.setFontSize(12);
+    if (window.localStorage.getItem("ssp_projectid") == 'sess') {
+        doc.text(100, (top + 10), "Order/Invoice");
+    } else {
+        doc.text(100, (top + 10), "Order");
+    }
+    doc.text(100, (top + 10.5), "____________");
+    doc.setFontSize(10);
+    doc.text(100, (top + 15), 'Number: ' + rs[0].SIORNM);
+    doc.text(100, (top + 20), 'Date: ' + formatDate(rs[0].SIDATO));
+    //JKS110916***Begin Added IfElse to MNSS Order PDF for Invoice# to display Order# as Invoice#.***
+    if (window.localStorage.getItem("ssp_projectid") == 'mnss') {
+        doc.text(100, (top + 25), 'Invoice #: ' + rs[0].SIORNM);
+    } else {
+        doc.text(100, (top + 25), 'Invoice #: ' + ((rs[0].SIINVO == null) ? '(use order #)' : rs[0].SIINVO));
+    }
+    //JKS110916***End Added IfElse to MNSS Order PDF for Invoice# to display Order# as Invoice#.***
+    doc.setFontSize(12);
+    doc.text(10, (top + 35), "Items");
+    doc.text(10, (top + 35.5), "_____");
+    //JKS110916***Begin Added IfElse to MNSS Order PDF for Bull Code to be Item#.***
+    if (window.localStorage.getItem("ssp_projectid") == 'mnss') {
+        doc.text(10, (top + 40), 'Item #');
+    } else {
+        doc.text(10, (top + 40), 'Bull Code');
+    }
+    //JKS110916***End Added IfElse to MNSS Order PDF for Bull Code to be Item#.***
+    doc.text(15, (top + 45), 'Name');
+    if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
+        //doc.text(90, (top + 45), 'Sales Code');
+        //doc.text(90, (top + 45), 'Labor Code');
+        doc.text(10, (top + 50), 'Previous: Date');
+        doc.text(45, (top + 50), 'Bull Code');
+        doc.text(70, (top + 50), 'Tech ID');
+    }
+    doc.text(120, (top + 40), 'Quantity');
+    doc.text(140, (top + 40), 'Amount');
+    doc.text(160, (top + 40), 'Total');
+    doc.text(10, (top + 50.5), "_____________________________________________________________________");
 
-                doc.setFontSize(10);
-                var linepos = (top + 55);
-                var grandtotal = 0;
-                var bulltotal = 0;
-                var bullqty = 0;
-                var nitrototal = 0;
-                var supptotal = 0;
-                var bullname = "";
-                var tax1total = 0;
-                var tax2total = 0;
-                var yousaved = 0;   //JKS012716 ***For YouSaved on PDF***
-                var saved = 0;  //JKS021816 ***For YouSaved on PDF Moved To***
-                var stotal = 0; //JKS021816 ***For YouSaved on PDF Moved To***
-                //var poatotal = 0;
-                for (var i = 0; i < rs.rows.length; i++) {
-                    doc.text(10, linepos, '' + rs.rows.item(i).SICOD + ((rs.rows.item(i).FRZYYYYMMDD && rs.rows.item(i).FRZYYYYMMDD != "0" && rs.rows.item(i).FRZYYYYMMDD != "null" && (window.localStorage.getItem("ssp_freeze") == 1)) ? ' - ' + formatYYYYMMDDtoMDY(rs.rows.item(i).FRZYYYYMMDD) : ''));       /*JKS101518***4.08->CHANGED THIS formatDate(rs.rows.item(i).FRZYYYYMMDD) TO formatYYYYMMDDtoMDY(rs.rows.item(i).FRZYYYYMMDD)*/
-                    bullname = ((rs.rows.item(i).SITYPS) == 'B') ? rs.rows.item(i).SINAM + " (COW: " + rs.rows.item(i).SICOW + ")" + " - Labor: " + rs.rows.item(i).SIARM.toFixed(2) : rs.rows.item(i).SINAM;
-                    if (rs.rows.item(i).SITYPS == "B" && window.localStorage.getItem("ssp_projectid") == 'ecss'){
-                        //doc.text(90, linepos + 5, '' + rs.rows.item(i).SIOTH);
-                        if ((rs.rows.item(i).SIOTH > 1 && rs.rows.item(i).SIOTH < 10)) {
-                            doc.text(20, linepos + 10, '' + rs.rows.item(i).SITYPI);
-                            doc.text(45, linepos + 10, '' + rs.rows.item(i).SILVL4);
-                            doc.text(70, linepos + 10, '' + rs.rows.item(i).SILIN);
-                        }
-                    }
-                    bullname += ((rs.rows.item(i).SITYPS) == 'Z') ? ' - ' + rs.rows.item(i).SIMATH : '';                    
-                    if (rs.rows.item(i).SILVL1 == 'M202') {
-                        bullname = bullname + ' (Blown Straw)'
-                    }
-                    if (rs.rows.item(i).SILVL1 == 'M203') {
-                        bullname = bullname + ' (Returned Semen)'
-                    }
-                    doc.text(15, linepos + 5, '' + bullname);
-                    if (window.localStorage.getItem("ssp_projectid") == 'ecss' && rs.rows.item(i).SIOTH != null){
-                        doc.text(90, linepos + 5, '' + rs.rows.item(i).SIOTH);
-                    }
-                    if (rs.rows.item(i).LOTNOT) {
-                        doc.text(15, linepos + 10, '' + rs.rows.item(i).LOTNOT);
-                    }
-                    if (rs.rows.item(i).SITYPS != "Z") doc.text(120, linepos, '' + rs.rows.item(i).SIQTY);
-                    doc.text(140, linepos, '' + ((rs.rows.item(i).SITYPS == "Z") ? rs.rows.item(i).SIPOA.toFixed(2) : rs.rows.item(i).SIPRC.toFixed(2)));
-                    if (rs.rows.item(i).SITYPS != "Z") doc.text(160, linepos, '' + ((rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM).toFixed(2));
-                    linepos += 15;
-                    grandtotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM;
-                    tax1total += rs.rows.item(i).SILVL2 * 1;
-                    tax2total += rs.rows.item(i).SILVL3 * 1;
-                    //JKS012716 ***Begin YouSaved calculations***
-                    if (rs.rows.item(i).SIRETL > 0) {
-//JKS021816 ***For YouSaved on PDF Moved From***                        var saved = 0;
-//JKS021816 ***For YouSaved on PDF Moved From***                        var stotal = 0;
-                        stotal = ((rs.rows.item(i).SIRETL - rs.rows.item(i).SIPRC) * rs.rows.item(i).SIQTY);
-                        saved = stotal;
-                        yousaved = saved + yousaved;
-                    }
-                    //JKS012716 ***End YouSaved calculations***
-                    switch (rs.rows.item(i).SITYPS) {
-                        case 'D':
-                            bulltotal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            bullqty += rs.rows.item(i).SIQTY;
-                            break;
-                        case 'B':
-                            bulltotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM;
-                            bullqty += rs.rows.item(i).SIQTY;
-                            break;
-                        case 'S':
-                            supptotal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            break;
-                        case 'N':
-                            nitrototal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            break;
-                            //case 'Z':
-                            //	  poatotal += rs.rows.item(i).SIPOA;
-                    }
-                    if ((linepos > 250) && (i < rs.rows.length - 1)) {
-                        doc.text(10, linepos, "(cont.)");
-                        doc.addPage();
-                        doc.text(10, 10, "(cont.) " + homeHeader + " - Order Number: " + rs.rows.item(0).SIORNM);
-                        linepos = 20;
-                    }
-                }
+    doc.setFontSize(10);
+    var linepos = (top + 55);
+    var grandtotal = 0;
+    var bulltotal = 0;
+    var bullqty = 0;
+    var nitrototal = 0;
+    var supptotal = 0;
+    var bullname = "";
+    var tax1total = 0;
+    var tax2total = 0;
+    var yousaved = 0;   //JKS012716 ***For YouSaved on PDF***
+    var saved = 0;  //JKS021816 ***For YouSaved on PDF Moved To***
+    var stotal = 0; //JKS021816 ***For YouSaved on PDF Moved To***
+    //var poatotal = 0;
+    for (var i = 0; i < rs.length; i++) {
+        doc.text(10, linepos, '' + rs[i].SICOD + ((rs[i].FRZYYYYMMDD && rs[i].FRZYYYYMMDD != "0" && rs[i].FRZYYYYMMDD != "null" && (window.localStorage.getItem("ssp_freeze") == 1)) ? ' - ' + formatYYYYMMDDtoMDY(rs[i].FRZYYYYMMDD) : ''));       /*JKS101518***4.08->CHANGED THIS formatDate(rs[i].FRZYYYYMMDD) TO formatYYYYMMDDtoMDY(rs[i].FRZYYYYMMDD)*/
+        bullname = ((rs[i].SITYPS) == 'B') ? rs[i].SINAM + " (COW: " + rs[i].SICOW + ")" + " - Labor: " + rs[i].SIARM.toFixed(2) : rs[i].SINAM;
+        if (rs[i].SITYPS == "B" && window.localStorage.getItem("ssp_projectid") == 'ecss') {
+            //doc.text(90, linepos + 5, '' + rs[i].SIOTH);
+            if ((rs[i].SIOTH > 1 && rs[i].SIOTH < 10)) {
+                doc.text(20, linepos + 10, '' + rs[i].SITYPI);
+                doc.text(45, linepos + 10, '' + rs[i].SILVL4);
+                doc.text(70, linepos + 10, '' + rs[i].SILIN);
+            }
+        }
+        bullname += ((rs[i].SITYPS) == 'Z') ? ' - ' + rs[i].SIMATH : '';
+        if (rs[i].SILVL1 == 'M202') {
+            bullname = bullname + ' (Blown Straw)'
+        }
+        if (rs[i].SILVL1 == 'M203') {
+            bullname = bullname + ' (Returned Semen)'
+        }
+        doc.text(15, linepos + 5, '' + bullname);
+        if (window.localStorage.getItem("ssp_projectid") == 'ecss' && rs[i].SIOTH != null) {
+            doc.text(90, linepos + 5, '' + rs[i].SIOTH);
+        }
+        if (rs[i].LOTNOT) {
+            doc.text(15, linepos + 10, '' + rs[i].LOTNOT);
+        }
+        if (rs[i].SITYPS != "Z") doc.text(120, linepos, '' + rs[i].SIQTY);
+        doc.text(140, linepos, '' + ((rs[i].SITYPS == "Z") ? rs[i].SIPOA.toFixed(2) : rs[i].SIPRC.toFixed(2)));
+        if (rs[i].SITYPS != "Z") doc.text(160, linepos, '' + ((rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM).toFixed(2));
+        linepos += 15;
+        grandtotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM;
+        tax1total += rs[i].SILVL2 * 1;
+        tax2total += rs[i].SILVL3 * 1;
+        //JKS012716 ***Begin YouSaved calculations***
+        if (rs[i].SIRETL > 0) {
+            //JKS021816 ***For YouSaved on PDF Moved From***                        var saved = 0;
+            //JKS021816 ***For YouSaved on PDF Moved From***                        var stotal = 0;
+            stotal = ((rs[i].SIRETL - rs[i].SIPRC) * rs[i].SIQTY);
+            saved = stotal;
+            yousaved = saved + yousaved;
+        }
+        //JKS012716 ***End YouSaved calculations***
+        switch (rs[i].SITYPS) {
+            case 'D':
+                bulltotal += rs[i].SIQTY * rs[i].SIPRC;
+                bullqty += rs[i].SIQTY;
+                break;
+            case 'B':
+                bulltotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM;
+                bullqty += rs[i].SIQTY;
+                break;
+            case 'S':
+                supptotal += rs[i].SIQTY * rs[i].SIPRC;
+                break;
+            case 'N':
+                nitrototal += rs[i].SIQTY * rs[i].SIPRC;
+                break;
+            //case 'Z':
+            //	  poatotal += rs[i].SIPOA;
+        }
+        if ((linepos > 250) && (i < rs.length - 1)) {
+            doc.text(10, linepos, "(cont.)");
+            doc.addPage();
+            doc.text(10, 10, "(cont.) " + homeHeader + " - Order Number: " + rs[0].SIORNM);
+            linepos = 20;
+        }
+    }
 
-                linepos += 5;
-                if (window.localStorage.getItem("ssp_projectid") == 'ssc') {
-                    doc.text(140, linepos, 'Item Total:  $' + grandtotal.toFixed(2));
-                    linepos += 5;
-                    doc.text(140, linepos, 'G.S.T./H.S.T.(RT869132142):  $' + tax1total.toFixed(2));
-                    linepos += 5;
-                    if (tax2total > 0) {
-                        doc.text(140, linepos, 'T.V.Q.(1087751925):  $' + tax2total.toFixed(2));
-                        linepos += 5;
-                    }
-                    doc.text(140, linepos - 4.5, "_______________________________");
-                    doc.text(140, linepos, 'Grand Total:  $' + (grandtotal + tax1total + tax2total).toFixed(2));
-                } else if (window.localStorage.getItem("ssp_projectid") == 'sess' || window.localStorage.getItem("ssp_projectid") == 'ecss' || window.localStorage.getItem("ssp_projectid") == 'mnss') {
-                    doc.text(140, linepos, 'Item Total:  $' + grandtotal.toFixed(2));
-                    linepos += 5;
-                    doc.text(140, linepos, 'Tax:  $' + tax1total.toFixed(2));
-                    linepos += 5;
-                    if (tax2total > 0) {
-                        doc.text(140, linepos, 'Additional Tax:  $' + tax2total.toFixed(2));
-                        linepos += 5;
-                    }
-                    doc.text(140, linepos - 4.5, "_____________________________");
-                    doc.text(140, linepos, 'Grand Total:  $' + (grandtotal + tax1total + tax2total).toFixed(2));
-                } else {
-                    doc.text(140, linepos, 'Grand Total:  $' + grandtotal.toFixed(2));
-                }
+    linepos += 5;
+    if (window.localStorage.getItem("ssp_projectid") == 'ssc') {
+        doc.text(140, linepos, 'Item Total:  $' + grandtotal.toFixed(2));
+        linepos += 5;
+        doc.text(140, linepos, 'G.S.T./H.S.T.(RT869132142):  $' + tax1total.toFixed(2));
+        linepos += 5;
+        if (tax2total > 0) {
+            doc.text(140, linepos, 'T.V.Q.(1087751925):  $' + tax2total.toFixed(2));
+            linepos += 5;
+        }
+        doc.text(140, linepos - 4.5, "_______________________________");
+        doc.text(140, linepos, 'Grand Total:  $' + (grandtotal + tax1total + tax2total).toFixed(2));
+    } else if (window.localStorage.getItem("ssp_projectid") == 'sess' || window.localStorage.getItem("ssp_projectid") == 'ecss' || window.localStorage.getItem("ssp_projectid") == 'mnss') {
+        doc.text(140, linepos, 'Item Total:  $' + grandtotal.toFixed(2));
+        linepos += 5;
+        doc.text(140, linepos, 'Tax:  $' + tax1total.toFixed(2));
+        linepos += 5;
+        if (tax2total > 0) {
+            doc.text(140, linepos, 'Additional Tax:  $' + tax2total.toFixed(2));
+            linepos += 5;
+        }
+        doc.text(140, linepos - 4.5, "_____________________________");
+        doc.text(140, linepos, 'Grand Total:  $' + (grandtotal + tax1total + tax2total).toFixed(2));
+    } else {
+        doc.text(140, linepos, 'Grand Total:  $' + grandtotal.toFixed(2));
+    }
 
-                //JKS012516 ***Begin YouSaved Output***
-                if (window.localStorage.getItem("ssp_yousaved") == 1 && yousaved > 0) {
-                    linepos += 10;
-                    doc.setFontSize(13)
-                    doc.text(140, linepos, 'YOU SAVED!!!' );
-                    linepos += 5;
-                    doc.setFontSize(13)
-                    doc.text(140, linepos, '$ ' + yousaved.toFixed(2));
-                }
-                //JKS012516 ***End YouSaved Output***
+    //JKS012516 ***Begin YouSaved Output***
+    if (window.localStorage.getItem("ssp_yousaved") == 1 && yousaved > 0) {
+        linepos += 10;
+        doc.setFontSize(13)
+        doc.text(140, linepos, 'YOU SAVED!!!');
+        linepos += 5;
+        doc.setFontSize(13)
+        doc.text(140, linepos, '$ ' + yousaved.toFixed(2));
+    }
+    //JKS012516 ***End YouSaved Output***
 
-                linepos += 10;
-                doc.setFontSize(12);
-                doc.text(10, linepos, "Order Summary");
-                doc.text(10, linepos + .5, "_____________");
+    linepos += 10;
+    doc.setFontSize(12);
+    doc.text(10, linepos, "Order Summary");
+    doc.text(10, linepos + .5, "_____________");
 
-                doc.setFontSize(10);
-                if (bulltotal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Bull Total: $" + bulltotal.toFixed(2));
-                    linepos += 5;
-                    doc.text(10, linepos, "Bull Quantity: " + bullqty.toFixed(2));
-                }
-                if (supptotal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Supply Total: $" + supptotal.toFixed(2));
-                }
-                if (nitrototal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Nitrogen Total: $" + nitrototal.toFixed(2));
-                }
-                if (window.localStorage.getItem("ssp_thankyou") != null) {
-                    linepos += 5;
-                    doc.text(10, linepos, "__________________");
-                    linepos += 5.5;
-                    doc.text(10, linepos, window.localStorage.getItem("ssp_thankyou"));
-                }
+    doc.setFontSize(10);
+    if (bulltotal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Bull Total: $" + bulltotal.toFixed(2));
+        linepos += 5;
+        doc.text(10, linepos, "Bull Quantity: " + bullqty.toFixed(2));
+    }
+    if (supptotal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Supply Total: $" + supptotal.toFixed(2));
+    }
+    if (nitrototal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Nitrogen Total: $" + nitrototal.toFixed(2));
+    }
+    if (window.localStorage.getItem("ssp_thankyou") != null) {
+        linepos += 5;
+        doc.text(10, linepos, "__________________");
+        linepos += 5.5;
+        doc.text(10, linepos, window.localStorage.getItem("ssp_thankyou"));
+    }
 
     //doc.output('datauri');  //JS021716PDFLocalTest
-	//doc.output('save');
-	//doc.output('dataurlnewwindow');
-	doc.save(rs.rows.item(0).SIORNM.replace('.','_') + '_' + Math.round(new Date().getTime() / 1000) + '.pdf');
-	
-	//doc.output('dataurlnewwindow');
-	//window.open(window.URL.createObjectURL(new Blob(doc.output('dataurlnewwindow'), {type: "application/pdf"})));
+    //doc.output('save');
+    //doc.output('dataurlnewwindow');
+    doc.save(rs[0].SIORNM.replace('.', '_') + '_' + Math.round(new Date().getTime() / 1000) + '.pdf');
+
+    //doc.output('dataurlnewwindow');
+    //window.open(window.URL.createObjectURL(new Blob(doc.output('dataurlnewwindow'), {type: "application/pdf"})));
     //PDFLocalTest comment out from here... (uncomment the line above)
- //               writer.write(doc.output());
- //               //JKS030216 ***BEGIN-Replaced FileOpener with FileOpener2***
- //               cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
- //                   'application/pdf',
- //                   {
- //                       error: function (e) {
- //                           console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
- //                       },
- //                       success: function () {
- //                           console.log('file opened successfully');
- //                       }
- //                   }
- //               );
- //               //JKS030216 ***END-Replaced FileOpener with FileOpener2***
-//JKS022916 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
-//            }
-//        }
-//    }
+    //               writer.write(doc.output());
+    //               //JKS030216 ***BEGIN-Replaced FileOpener with FileOpener2***
+    //               cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
+    //                   'application/pdf',
+    //                   {
+    //                       error: function (e) {
+    //                           console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
+    //                       },
+    //                       success: function () {
+    //                           console.log('file opened successfully');
+    //                       }
+    //                   }
+    //               );
+    //               //JKS030216 ***END-Replaced FileOpener with FileOpener2***
+    //JKS022916 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
+    //            }
+    //        }
+    //    }
     //PDFLocalTest ...to here for local pdf test
 }
 
-function syncPDF(tx, rs) {
-//    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
+function syncPDF(rs) {
+    //    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
 
-//    function gotFS(fileSystem) {
-//        var path = window.localStorage.getItem('ssp_orderpdf') + "sync_" + Math.round(new Date().getTime() / 1000) + ".pdf";
-//        fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
+    //    function gotFS(fileSystem) {
+    //        var path = window.localStorage.getItem('ssp_orderpdf') + "sync_" + Math.round(new Date().getTime() / 1000) + ".pdf";
+    //        fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
 
-//        function gotFileEntry(fileEntry) {
-//            fileEntry.createWriter(gotFileWriter, fail);
-//            function gotFileWriter(writer) {
-                var doc = new jsPDF();
-                var homeHeader = 'Premier Select Sires';
-                switch (window.localStorage.getItem("ssp_projectid")) {
-                    case 'sess':
-                        homeHeader = 'Premier Select Sires';
-                        break;
-                    case 'ssc':
-                        homeHeader = 'Select Sires Genervations, Inc.';
-                        break;
-                    case 'ps':
-                        homeHeader = 'Select Sires MidAmerica';
-                        break;
-                    case 'ecss':
-                        homeHeader = 'CentralStar';
-                        break;
-                    //JKS092716***Added MNSS Header to SyncPDF.***
-                    case 'mnss':
-                        homeHeader = 'Minnesota Select Sires';
-                        break;
-                }
-                
-                doc.setFontSize(16);
-                doc.text(10, 12, homeHeader + " - SYNC ITEM LOG");
-                doc.text(10, 12.75, "__________________");
+    //        function gotFileEntry(fileEntry) {
+    //            fileEntry.createWriter(gotFileWriter, fail);
+    //            function gotFileWriter(writer) {
+    var doc = new jsPDF();
+    var homeHeader = 'Premier Select Sires';
+    switch (window.localStorage.getItem("ssp_projectid")) {
+        case 'sess':
+            homeHeader = 'Premier Select Sires';
+            break;
+        case 'ssc':
+            homeHeader = 'Select Sires Genervations, Inc.';
+            break;
+        case 'ps':
+            homeHeader = 'Select Sires MidAmerica';
+            break;
+        case 'ecss':
+            homeHeader = 'CentralStar';
+            break;
+        //JKS092716***Added MNSS Header to SyncPDF.***
+        case 'mnss':
+            homeHeader = 'Minnesota Select Sires';
+            break;
+    }
 
-                doc.text(10, 19, 'Date Stamp: ' + formatDate(Math.round(new Date().getTime() / 1000)));
-                doc.setFontSize(12);
-                doc.text(10, 55, "Items");
-                doc.text(10, 55.5, "_____");
+    doc.setFontSize(16);
+    doc.text(10, 12, homeHeader + " - SYNC ITEM LOG");
+    doc.text(10, 12.75, "__________________");
 
-                doc.text(10, 60, 'Code');
-                doc.text(15, 65, 'Name');
-                doc.text(80, 60, 'Customer');
-                doc.text(85, 65, 'Order');
-                doc.text(120, 60, 'Quantity');
-                doc.text(140, 60, 'Amount');
-                doc.text(160, 60, 'Total');
-                doc.text(10, 65.5, "_____________________________________________________________________");
+    doc.text(10, 19, 'Date Stamp: ' + formatDate(Math.round(new Date().getTime() / 1000)));
+    doc.setFontSize(12);
+    doc.text(10, 55, "Items");
+    doc.text(10, 55.5, "_____");
 
-                doc.setFontSize(10);
-                var linepos = 75;
-                var grandtotal = 0;
-                var bulltotal = 0;
-                var bullqty = 0;
-                var nitrototal = 0;
-                var supptotal = 0;
-                var transqty = 0;       /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
-                var bullname = "";
-                for (var i = 0; i < rs.rows.length; i++) {
-                    doc.text(10, linepos, '' + rs.rows.item(i).SICOD);
-                    doc.text(10, linepos - 5, 'Date: ' + formatDate(rs.rows.item(i).SIDATO));
-                    bullname = ((rs.rows.item(i).SITYPS) == 'B') ? rs.rows.item(i).SINAM + " (COW: " + rs.rows.item(i).SICOW + ")" : rs.rows.item(i).SINAM;
-                    doc.text(15, linepos + 5, '' + bullname);
-                    doc.text(80, linepos, '' + rs.rows.item(i).SIANM);
-                    doc.text(85, linepos + 5, '' + rs.rows.item(i).SIORNM);
-                    if (rs.rows.item(i).SITYPS != "Z") doc.text(120, linepos, '' + rs.rows.item(i).SIQTY);
-                    if (rs.rows.item(i).SITYPS != "T") doc.text(140, linepos, '' + ((rs.rows.item(i).SITYPS == "Z") ? rs.rows.item(i).SIPOA.toFixed(2) : rs.rows.item(i).SIPRC.toFixed(2)));        /*JKS092618***4.06->Added if (rs.rows.item(i).SITYPS != "T")*/ 
-                    if ((rs.rows.item(i).SITYPS != "Z") || (rs.rows.item(i).SITYPS != "T")) doc.text(160, linepos, '' + ((rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM).toFixed(2)); /*JKS091918***4.06->Added || rs.rows.item(i).SITYPS != "T"*/
-                    linepos += 15;
-                    if (rs.rows.item(i).SITYPS != "T") grandtotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM;      /*JKS092018***4.06->Added if (rs.rows.item(i).SITYPS != "T") {} to include pending transfers to the "save sync items to file" Button on the SYNC Page for Grand Total*/ 
-                    switch (rs.rows.item(i).SITYPS) {
-                        case 'D':
-                            bulltotal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            bullqty += rs.rows.item(i).SIQTY;
-                            break;
-                        case 'B':
-                            bulltotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM;
-                            bullqty += rs.rows.item(i).SIQTY;
-                            break;
-                        case 'S':
-                            supptotal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            break;
-                        case 'N':
-                            nitrototal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            break;
-                        case 'T':           /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
-                            transqty += rs.rows.item(i).SIQTY;
-                            break;
-                    }
-                    if ((linepos > 230) && (i < rs.rows.length - 1)) {
-                        doc.text(10, linepos, "(cont.)");
-                        doc.addPage();
-                        doc.text(10, 10, "(cont.) Premier Select Sires, Inc. - Sync Log - " + formatDate(Math.round(new Date().getTime() / 1000)));
-                        linepos = 20;
-                    }
-                }
+    doc.text(10, 60, 'Code');
+    doc.text(15, 65, 'Name');
+    doc.text(80, 60, 'Customer');
+    doc.text(85, 65, 'Order');
+    doc.text(120, 60, 'Quantity');
+    doc.text(140, 60, 'Amount');
+    doc.text(160, 60, 'Total');
+    doc.text(10, 65.5, "_____________________________________________________________________");
 
-                linepos += 5;
-                doc.text(140, linepos, 'Grand Total:  $' + grandtotal.toFixed(2));
+    doc.setFontSize(10);
+    var linepos = 75;
+    var grandtotal = 0;
+    var bulltotal = 0;
+    var bullqty = 0;
+    var nitrototal = 0;
+    var supptotal = 0;
+    var transqty = 0;       /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
+    var bullname = "";
+    for (var i = 0; i < rs.length; i++) {
+        doc.text(10, linepos, '' + rs[i].SICOD);
+        doc.text(10, linepos - 5, 'Date: ' + formatDate(rs[i].SIDATO));
+        bullname = ((rs[i].SITYPS) == 'B') ? rs[i].SINAM + " (COW: " + rs[i].SICOW + ")" : rs[i].SINAM;
+        doc.text(15, linepos + 5, '' + bullname);
+        doc.text(80, linepos, '' + rs[i].SIANM);
+        doc.text(85, linepos + 5, '' + rs[i].SIORNM);
+        if (rs[i].SITYPS != "Z") doc.text(120, linepos, '' + rs[i].SIQTY);
+        if (rs[i].SITYPS != "T") doc.text(140, linepos, '' + ((rs[i].SITYPS == "Z") ? rs[i].SIPOA.toFixed(2) : rs[i].SIPRC.toFixed(2)));        /*JKS092618***4.06->Added if (rs[i].SITYPS != "T")*/
+        if ((rs[i].SITYPS != "Z") || (rs[i].SITYPS != "T")) doc.text(160, linepos, '' + ((rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM).toFixed(2)); /*JKS091918***4.06->Added || rs[i].SITYPS != "T"*/
+        linepos += 15;
+        if (rs[i].SITYPS != "T") grandtotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM;      /*JKS092018***4.06->Added if (rs[i].SITYPS != "T") {} to include pending transfers to the "save sync items to file" Button on the SYNC Page for Grand Total*/
+        switch (rs[i].SITYPS) {
+            case 'D':
+                bulltotal += rs[i].SIQTY * rs[i].SIPRC;
+                bullqty += rs[i].SIQTY;
+                break;
+            case 'B':
+                bulltotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM;
+                bullqty += rs[i].SIQTY;
+                break;
+            case 'S':
+                supptotal += rs[i].SIQTY * rs[i].SIPRC;
+                break;
+            case 'N':
+                nitrototal += rs[i].SIQTY * rs[i].SIPRC;
+                break;
+            case 'T':           /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
+                transqty += rs[i].SIQTY;
+                break;
+        }
+        if ((linepos > 230) && (i < rs.length - 1)) {
+            doc.text(10, linepos, "(cont.)");
+            doc.addPage();
+            doc.text(10, 10, "(cont.) Premier Select Sires, Inc. - Sync Log - " + formatDate(Math.round(new Date().getTime() / 1000)));
+            linepos = 20;
+        }
+    }
 
-                linepos += 10;
-                doc.setFontSize(12);
-                doc.text(10, linepos, "Order Summary");
-                doc.text(10, linepos + .5, "_____________");
+    linepos += 5;
+    doc.text(140, linepos, 'Grand Total:  $' + grandtotal.toFixed(2));
 
-                doc.setFontSize(10);
-                if (bulltotal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Bull Total: $" + bulltotal.toFixed(2));
-                    linepos += 5;
-                    doc.text(10, linepos, "Bull Quantity: " + bullqty.toFixed(2));
-                }
-                if (supptotal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Supply Total: $" + supptotal.toFixed(2));
-                }
-                if (nitrototal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Nitrogen Total: $" + nitrototal.toFixed(2));
-                }
-                if (transqty > 0) {         /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
-                    linepos += 5;
-                    doc.text(10, linepos, "Transfer Quantity: " + transqty.toFixed(2));
-                }
-                if (window.localStorage.getItem("ssp_thankyou") != null) {
-                    linepos += 5;
-                    doc.text(10, linepos, "_____________");
-                }
+    linepos += 10;
+    doc.setFontSize(12);
+    doc.text(10, linepos, "Order Summary");
+    doc.text(10, linepos + .5, "_____________");
 
-		doc.save('Sync_' + Math.round(new Date().getTime() / 1000) + '.pdf');
-                //doc.output('datauri');
-//                writer.write(doc.output());
-                //JKS030216 ***BEGIN-Replaced FileOpener with FileOpener2***
-//                cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
-//                    'application/pdf',
-//                    {
-//                        error: function (e) {
-//                            console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
-//                        },
-//                        success: function () {
-//                            console.log('file opened successfully');
-//                        }
-//                    }
-//                );
-                //JKS030216 ***END-Replaced FileOpener with FileOpener2***
-//JKS022916 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
-//            }
-//        }
-//    }
+    doc.setFontSize(10);
+    if (bulltotal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Bull Total: $" + bulltotal.toFixed(2));
+        linepos += 5;
+        doc.text(10, linepos, "Bull Quantity: " + bullqty.toFixed(2));
+    }
+    if (supptotal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Supply Total: $" + supptotal.toFixed(2));
+    }
+    if (nitrototal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Nitrogen Total: $" + nitrototal.toFixed(2));
+    }
+    if (transqty > 0) {         /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
+        linepos += 5;
+        doc.text(10, linepos, "Transfer Quantity: " + transqty.toFixed(2));
+    }
+    if (window.localStorage.getItem("ssp_thankyou") != null) {
+        linepos += 5;
+        doc.text(10, linepos, "_____________");
+    }
+
+    doc.save('Sync_' + Math.round(new Date().getTime() / 1000) + '.pdf');
+    //doc.output('datauri');
+    //                writer.write(doc.output());
+    //JKS030216 ***BEGIN-Replaced FileOpener with FileOpener2***
+    //                cordova.plugins.fileOpener2.open(cordova.file.externalRootDirectory + path,     //JKS030716 ***New Path***
+    //                    'application/pdf',
+    //                    {
+    //                        error: function (e) {
+    //                            console.log('Error status: ' + e.status + ' - Error message: ' + e.message);
+    //                        },
+    //                        success: function () {
+    //                            console.log('file opened successfully');
+    //                        }
+    //                    }
+    //                );
+    //JKS030216 ***END-Replaced FileOpener with FileOpener2***
+    //JKS022916 ***Replaced FileOpener with FileOpener2***                window.plugins.fileOpener.open("file://" + path);
+    //            }
+    //        }
+    //    }
 }
 
-function backupPDF(tx, rs) {
+function backupPDF(rs, err) {
     // window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, gotFS, fail);
 
     // function gotFS(fileSystem) {
-        // var path = window.localStorage.getItem('ssp_orderpdf') + "ssp_backup_" + new Date().getDay() + ".pdf";
-        // fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
+    // var path = window.localStorage.getItem('ssp_orderpdf') + "ssp_backup_" + new Date().getDay() + ".pdf";
+    // fileSystem.root.getFile(path, { create: true, exclusive: false }, gotFileEntry, fail);
 
-        // function gotFileEntry(fileEntry) {
-            // fileEntry.createWriter(gotFileWriter, fail);
-            // function gotFileWriter(writer) {
-                var doc = new jsPDF();
-                var homeHeader = 'Premier Select Sires';
-                switch (window.localStorage.getItem("ssp_projectid")) {
-                    case 'sess':
-                        homeHeader = 'Premier Select Sires';
-                        break;
-                    case 'ssc':
-                        homeHeader = 'Select Sires Genvervations';
-                        break;
-                    case 'ps':
-                        homeHeader = 'Select Sires MidAmerica';
-                        break;
-                    case 'ecss':
-                        homeHeader = 'CentralStar';
-                        break;
-                        //JKS092716***Added MNSS Header to BackupPDF.***
-                    case 'mnss':
-                        homeHeader = 'Minnesota Select Sires';
-                        break;
-                }
-                doc.setFontSize(16);
-                doc.text(10, 12, homeHeader + " - BACKUP MODIFIED ITEMS");
-                doc.text(10, 12.75, "__________________");
+    // function gotFileEntry(fileEntry) {
+    // fileEntry.createWriter(gotFileWriter, fail);
+    // function gotFileWriter(writer) {
+    var doc = new jsPDF();
+    var homeHeader = 'Premier Select Sires';
+    switch (window.localStorage.getItem("ssp_projectid")) {
+        case 'sess':
+            homeHeader = 'Premier Select Sires';
+            break;
+        case 'ssc':
+            homeHeader = 'Select Sires Genvervations';
+            break;
+        case 'ps':
+            homeHeader = 'Select Sires MidAmerica';
+            break;
+        case 'ecss':
+            homeHeader = 'CentralStar';
+            break;
+        //JKS092716***Added MNSS Header to BackupPDF.***
+        case 'mnss':
+            homeHeader = 'Minnesota Select Sires';
+            break;
+    }
+    doc.setFontSize(16);
+    doc.text(10, 12, homeHeader + " - BACKUP MODIFIED ITEMS");
+    doc.text(10, 12.75, "__________________");
 
-                doc.text(10, 19, 'Date Stamp: ' + formatDate(Math.round(new Date().getTime() / 1000)));
-                doc.setFontSize(12);
-                doc.text(10, 55, "Items");
-                doc.text(10, 55.5, "_____");
+    doc.text(10, 19, 'Date Stamp: ' + formatDate(Math.round(new Date().getTime() / 1000)));
+    doc.setFontSize(12);
+    doc.text(10, 55, "Items");
+    doc.text(10, 55.5, "_____");
 
-                doc.text(10, 60, 'Code');
-                doc.text(15, 65, 'Name');
-                doc.text(80, 60, 'Customer');
-                doc.text(85, 65, 'Account#')
-                doc.text(90, 70, 'Order');
-                doc.text(120, 60, 'Quantity');
-                doc.text(140, 60, 'Amount');
-                doc.text(160, 60, 'Total');
-                doc.text(10, 70.5, "_____________________________________________________________________");
+    doc.text(10, 60, 'Code');
+    doc.text(15, 65, 'Name');
+    doc.text(80, 60, 'Customer');
+    doc.text(85, 65, 'Account#')
+    doc.text(90, 70, 'Order');
+    doc.text(120, 60, 'Quantity');
+    doc.text(140, 60, 'Amount');
+    doc.text(160, 60, 'Total');
+    doc.text(10, 70.5, "_____________________________________________________________________");
 
-                doc.setFontSize(10);
-                var linepos = 75;
-                var grandtotal = 0;
-                var bulltotal = 0;
-                var bullqty = 0;
-                var nitrototal = 0;
-                var supptotal = 0;
-                var transqty = 0;       /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
-                var bullname = "";
-//JKS021816 ***Not Needed***                var yousaved = 0;   //JKS012916 ***For YouSaved on PDF***
-                for (var i = 0; i < rs.rows.length; i++) {
-                    doc.text(10, linepos, 'Date: ' + formatDate(rs.rows.item(0).SIDATO));
-                    doc.text(10, linepos + 5, '' + rs.rows.item(i).SICOD);
-                    bullname = ((rs.rows.item(i).SITYPS) == 'B') ? rs.rows.item(i).SINAM + " (COW: " + rs.rows.item(i).SICOW + ")" : rs.rows.item(i).SINAM;
-                    doc.text(15, linepos + 10, '' + bullname);
-                    doc.text(80, linepos, '' + rs.rows.item(i).SIANM);
-                    doc.text(85, linepos + 5, '' + rs.rows.item(i).SIACT);
-                    doc.text(90, linepos + 10, '' + rs.rows.item(i).SIORNM);
-                    if (rs.rows.item(i).SITYPS != "Z") doc.text(120, linepos, '' + rs.rows.item(i).SIQTY);
-                    if (rs.rows.item(i).SITYPS != "T") doc.text(140, linepos, '' + ((rs.rows.item(i).SITYPS == "Z") ? rs.rows.item(i).SIPOA.toFixed(2) : rs.rows.item(i).SIPRC.toFixed(2)));        /*JKS100418***4.07->Added if (rs.rows.item(i).SITYPS != "T") for pending transfers in the backupPDF*/
-                    if ((rs.rows.item(i).SITYPS != "Z") || (rs.rows.item(i).SITYPS != "T")) doc.text(160, linepos, '' + ((rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM).toFixed(2));      /*JKS100418***4.07->Added || rs.rows.item(i).SITYPS != "T" for pending transfers in the backupPDF*/
-                    linepos += 15;
-                    if (rs.rows.item(i).SITYPS != "T") grandtotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM;      /*JKS100418***4.07->Added if (rs.rows.item(i).SITYPS != "T") {} to include pending transfers to the Backup Items for Grand Total*/
-                    switch (rs.rows.item(i).SITYPS) {
-                        case 'D':
-                            bulltotal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            bullqty += rs.rows.item(i).SIQTY;
-                            break;
-                        case 'B':
-                            bulltotal += (rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC) + rs.rows.item(i).SIARM;
-                            bullqty += rs.rows.item(i).SIQTY;
-                            break;
-                        case 'S':
-                            supptotal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            break;
-                        case 'N':
-                            nitrototal += rs.rows.item(i).SIQTY * rs.rows.item(i).SIPRC;
-                            break;
-                        case 'T':           /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
-                            transqty += rs.rows.item(i).SIQTY;
-                            break;
-                    }
-                    if ((linepos > 230) && (i < rs.rows.length - 1)) {
-                        doc.text(10, linepos, "(cont.)");
-                        doc.addPage();
-                        doc.text(10, 10, "(cont.) Premier Select Sires, Inc. - Sync Log - " + formatDate(Math.round(new Date().getTime() / 1000)));
-                        linepos = 20;
-                    }
-                    //JKS012916 ***Begin YouSaved calculations***
-//JKS021816 ***Not Needed***                    if (rs.rows.item(i).SIRETL > 0) {
-//JKS021816 ***Not Needed***                        var saved = 0;
-//JKS021816 ***Not Needed***                        var stotal = 0;
-//JKS021816 ***Not Needed***                        stotal = ((rs.rows.item(i).SIRETL - rs.rows.item(i).SIPRC) * rs.rows.item(i).SIQTY);
-//JKS021816 ***Not Needed***                        saved = stotal;
-//JKS021816 ***Not Needed***                        yousaved = saved + yousaved;
-//JKS021816 ***Not Needed***                    }
-                    //JKS012916 ***End YouSaved calculations***                    
-                }
+    doc.setFontSize(10);
+    var linepos = 75;
+    var grandtotal = 0;
+    var bulltotal = 0;
+    var bullqty = 0;
+    var nitrototal = 0;
+    var supptotal = 0;
+    var transqty = 0;       /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
+    var bullname = "";
+    //JKS021816 ***Not Needed***                var yousaved = 0;   //JKS012916 ***For YouSaved on PDF***
+    for (var i = 0; i < rs.length; i++) {
+        doc.text(10, linepos, 'Date: ' + formatDate(rs[0].SIDATO));
+        doc.text(10, linepos + 5, '' + rs[i].SICOD);
+        bullname = ((rs[i].SITYPS) == 'B') ? rs[i].SINAM + " (COW: " + rs[i].SICOW + ")" : rs[i].SINAM;
+        doc.text(15, linepos + 10, '' + bullname);
+        doc.text(80, linepos, '' + rs[i].SIANM);
+        doc.text(85, linepos + 5, '' + rs[i].SIACT);
+        doc.text(90, linepos + 10, '' + rs[i].SIORNM);
+        if (rs[i].SITYPS != "Z") doc.text(120, linepos, '' + rs[i].SIQTY);
+        if (rs[i].SITYPS != "T") doc.text(140, linepos, '' + ((rs[i].SITYPS == "Z") ? rs[i].SIPOA.toFixed(2) : rs[i].SIPRC.toFixed(2)));        /*JKS100418***4.07->Added if (rs[i].SITYPS != "T") for pending transfers in the backupPDF*/
+        if ((rs[i].SITYPS != "Z") || (rs[i].SITYPS != "T")) doc.text(160, linepos, '' + ((rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM).toFixed(2));      /*JKS100418***4.07->Added || rs[i].SITYPS != "T" for pending transfers in the backupPDF*/
+        linepos += 15;
+        if (rs[i].SITYPS != "T") grandtotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM;      /*JKS100418***4.07->Added if (rs[i].SITYPS != "T") {} to include pending transfers to the Backup Items for Grand Total*/
+        switch (rs[i].SITYPS) {
+            case 'D':
+                bulltotal += rs[i].SIQTY * rs[i].SIPRC;
+                bullqty += rs[i].SIQTY;
+                break;
+            case 'B':
+                bulltotal += (rs[i].SIQTY * rs[i].SIPRC) + rs[i].SIARM;
+                bullqty += rs[i].SIQTY;
+                break;
+            case 'S':
+                supptotal += rs[i].SIQTY * rs[i].SIPRC;
+                break;
+            case 'N':
+                nitrototal += rs[i].SIQTY * rs[i].SIPRC;
+                break;
+            case 'T':           /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
+                transqty += rs[i].SIQTY;
+                break;
+        }
+        if ((linepos > 230) && (i < rs.length - 1)) {
+            doc.text(10, linepos, "(cont.)");
+            doc.addPage();
+            doc.text(10, 10, "(cont.) Premier Select Sires, Inc. - Sync Log - " + formatDate(Math.round(new Date().getTime() / 1000)));
+            linepos = 20;
+        }
+        //JKS012916 ***Begin YouSaved calculations***
+        //JKS021816 ***Not Needed***                    if (rs[i].SIRETL > 0) {
+        //JKS021816 ***Not Needed***                        var saved = 0;
+        //JKS021816 ***Not Needed***                        var stotal = 0;
+        //JKS021816 ***Not Needed***                        stotal = ((rs[i].SIRETL - rs[i].SIPRC) * rs[i].SIQTY);
+        //JKS021816 ***Not Needed***                        saved = stotal;
+        //JKS021816 ***Not Needed***                        yousaved = saved + yousaved;
+        //JKS021816 ***Not Needed***                    }
+        //JKS012916 ***End YouSaved calculations***                    
+    }
 
-                linepos += 5;
-                doc.text(140, linepos, 'Grand Total:  $' + grandtotal.toFixed(2));
-                
-                //JKS012916 ***Begin YouSaved Output***
-//JKS021816 ***Not Needed***                if (yousaved > 0){
-//JKS021816 ***Not Needed***                    linepos += 10;
-//JKS021816 ***Not Needed***                    doc.setFontSize(13)
-//JKS021816 ***Not Needed***                    doc.text(140, linepos, 'YOU SAVED!!!' );
-//JKS021816 ***Not Needed***                    linepos += 5;
-//JKS021816 ***Not Needed***                    doc.setFontSize(13)
-//JKS021816 ***Not Needed***                    doc.text(140, linepos, '$ ' + yousaved.toFixed(2));
-//JKS021816 ***Not Needed***                }
-                //JKS012916 ***End YouSaved Output***
+    linepos += 5;
+    doc.text(140, linepos, 'Grand Total:  $' + grandtotal.toFixed(2));
 
-                linepos += 10;
-                doc.setFontSize(12);
-                doc.text(10, linepos, "Order Summary");
-                doc.text(10, linepos + .5, "_____________");
+    //JKS012916 ***Begin YouSaved Output***
+    //JKS021816 ***Not Needed***                if (yousaved > 0){
+    //JKS021816 ***Not Needed***                    linepos += 10;
+    //JKS021816 ***Not Needed***                    doc.setFontSize(13)
+    //JKS021816 ***Not Needed***                    doc.text(140, linepos, 'YOU SAVED!!!' );
+    //JKS021816 ***Not Needed***                    linepos += 5;
+    //JKS021816 ***Not Needed***                    doc.setFontSize(13)
+    //JKS021816 ***Not Needed***                    doc.text(140, linepos, '$ ' + yousaved.toFixed(2));
+    //JKS021816 ***Not Needed***                }
+    //JKS012916 ***End YouSaved Output***
 
-                doc.setFontSize(10);
-                if (bulltotal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Bull Total: $" + bulltotal.toFixed(2));
-                    linepos += 5;
-                    doc.text(10, linepos, "Bull Quantity: " + bullqty.toFixed(2));
-                }
-                if (supptotal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Supply Total: $" + supptotal.toFixed(2));
-                }
-                if (nitrototal > 0) {
-                    linepos += 5;
-                    doc.text(10, linepos, "Nitrogen Total: $" + nitrototal.toFixed(2));
-                }
-                if (transqty > 0) {         /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
-                    linepos += 5;
-                    doc.text(10, linepos, "Transfer Quantity: " + transqty.toFixed(2));
-                }
-                if (window.localStorage.getItem("ssp_thankyou") != null) {
-                    linepos += 5;
-                    doc.text(10, linepos, "_____________");
-                }
-				doc.save('Bulls-I_Backup_' + new Date().getDay() + '_' + Math.round(new Date().getTime() / 1000) + '.pdf');
-                // //doc.output('datauri');
-                // writer.write(doc.output());
-            // }
-        // }
+    linepos += 10;
+    doc.setFontSize(12);
+    doc.text(10, linepos, "Order Summary");
+    doc.text(10, linepos + .5, "_____________");
+
+    doc.setFontSize(10);
+    if (bulltotal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Bull Total: $" + bulltotal.toFixed(2));
+        linepos += 5;
+        doc.text(10, linepos, "Bull Quantity: " + bullqty.toFixed(2));
+    }
+    if (supptotal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Supply Total: $" + supptotal.toFixed(2));
+    }
+    if (nitrototal > 0) {
+        linepos += 5;
+        doc.text(10, linepos, "Nitrogen Total: $" + nitrototal.toFixed(2));
+    }
+    if (transqty > 0) {         /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
+        linepos += 5;
+        doc.text(10, linepos, "Transfer Quantity: " + transqty.toFixed(2));
+    }
+    if (window.localStorage.getItem("ssp_thankyou") != null) {
+        linepos += 5;
+        doc.text(10, linepos, "_____________");
+    }
+    doc.save('Bulls-I_Backup_' + new Date().getDay() + '_' + Math.round(new Date().getTime() / 1000) + '.pdf');
+    // //doc.output('datauri');
+    // writer.write(doc.output());
+    // }
+    // }
     // }
 }
 

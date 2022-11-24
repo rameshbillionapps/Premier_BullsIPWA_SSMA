@@ -1,5 +1,5 @@
 var CUSTPAGING = 25;
-var sspversion = '4.70pwa';
+var sspversion = '5.00pwa';
 
 /*JKS100219***4.24pwa->CHANGED save sync file name format.  FIXED app Backups.  CHANGED app name and associated functions from SSP to Bulls-I.*/
 /*JKS092519***4.23pwa->FIXED save sync items to file button.  CS ONLY - REMOVED "undefined" field from Customer Order PDF.***
@@ -24,18 +24,18 @@ var sspversion = '4.70pwa';
 /*JKS103118***4.10->ADDED the following to Reports for SESS Semen Sorted Order List: || (window.localStorage.getItem("ssp_projectid") == 'sess')*/
 /*RP102318***4.09->Added a check for null before formatting frzyyyymmdd in the orderPDF function*/
 /*RP102318***4.09->Changed loadOrderItems function freeze check from ("ssp_projectid") == "ssc" to ("ssp_freeze") == 1*/
-/*JKS101518***4.08->CHANGED THIS formatDate(rs.rows.item(i).FRZYYYYMMDD) TO formatYYYYMMDDtoMDY(rs.rows.item(i).FRZYYYYMMDD)*/
-/*JKS101518***4.08->Added the following to not display FRZ with 0 and NULL values in pending orders: && rs.rows.item(i).FRZYYYYMMDD != "0" && rs.rows.item(i).FRZYYYYMMDD != "null"*/
+/*JKS101518***4.08->CHANGED THIS formatDate(rs[i].FRZYYYYMMDD) TO formatYYYYMMDDtoMDY(rs[i].FRZYYYYMMDD)*/
+/*JKS101518***4.08->Added the following to not display FRZ with 0 and NULL values in pending orders: && rs[i].FRZYYYYMMDD != "0" && rs[i].FRZYYYYMMDD != "null"*/
 /*RP100918***4.08-> replaced epoch frzdat with FRZYYYYMMDD
 /*JKS100418***4.07->Added the following to include pending transfers to the BackUp Items function.*** OR SITYPS = "T"*/
 /*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
-/*JKS100418***4.07->Added if (rs.rows.item(i).SITYPS != "T") for pending transfers in the backupPDF*/
-/*JKS100418***4.07->Added || rs.rows.item(i).SITYPS != "T" for pending transfers in the backupPDF*/
-/*JKS100418***4.07->Added if (rs.rows.item(i).SITYPS != "T") {} to include pending transfers to the Backup Items for Grand Total*/
+/*JKS100418***4.07->Added if (rs[i].SITYPS != "T") for pending transfers in the backupPDF*/
+/*JKS100418***4.07->Added || rs[i].SITYPS != "T" for pending transfers in the backupPDF*/
+/*JKS100418***4.07->Added if (rs[i].SITYPS != "T") {} to include pending transfers to the Backup Items for Grand Total*/
 /*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
-/*JKS092618***4.06->Added if (rs.rows.item(i).SITYPS != "T")*/
-/*JKS092018***4.06->Added if (rs.rows.item(i).SITYPS != "T") {} to include pending transfers to the "save sync items to file" Button on the SYNC Page for Grand Total*/
-/*JKS091918***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** || rs.rows.item(i).SITYPS != "T"*/
+/*JKS092618***4.06->Added if (rs[i].SITYPS != "T")*/
+/*JKS092018***4.06->Added if (rs[i].SITYPS != "T") {} to include pending transfers to the "save sync items to file" Button on the SYNC Page for Grand Total*/
+/*JKS091918***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** || rs[i].SITYPS != "T"*/
 /*JKS091018***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** OR SITYPS = "T"*/
 /*JKS083018***4.05->Made additional changes to the SQL function for the Sorted Bull Inventory Report for unaccounted ACTIVE=L items or Bulls that appear on a price list but aren't included with Amanda's Semen Order List*/
 /*JKS082818***4.04->Made a change to the SQL function for the Sorted Bull Inventory Report to fix sorting error on new list*/
@@ -92,7 +92,7 @@ var sspversion = '4.70pwa';
 //JKS070717***v3.100.31->Fixed Supply Inventory counts, but broke removal of invalid Freeze Dates in previous Supply sales, and previous Bull sales count in the Inventory.***
 //JKS070617***3.100.31->FIXED Bull Inventory Info by changing item.FRZDAT to ((!item.FRZDAT) ? 0 : item.FRZDAT)***
 //JKS062717***3.100.30->Changed LOTNOT to (item.LOTNOT == null ? '' : item.LOTNOT) and FRZDAT to (item.FRZDAT == null ? '' : item.FRZDAT) TO RESOLVE "undefined" in both old and new db lists***
-//JKS062717***3.100.30->ADDED (&& (rs.rows.item(i).FRZDAT) != "undefined") {} TO REMOVE NaN in Bull List and prevent default date***
+//JKS062717***3.100.30->ADDED (&& (rs[i].FRZDAT) != "undefined") {} TO REMOVE NaN in Bull List and prevent default date***
 //JKS062317***Changed LOTNOT to (item.LOTNOT == 'undefinded' ? '' : item.LOTNOT) and FRZDAT to (item.FRZDAT == 'undefinded' ? '' : item.FRZDAT)***
 //JKS062217***Changed LOTNOT to ((item.LOTNOT = 'undefinded' || 'null') ? '' : item.LOTNOT) and FRZDAT to ((item.FRZDAT = 'undefinded' || 'null') ? '' : item.FRZDAT)***
 //JKS062017***3.100.29->Fixed VA zipcode error replaced six-digit number with 24151 in Orders and Transfers***
@@ -239,11 +239,14 @@ function resize_iframe() {
     //resize the iframe according to the size of the
     //window (all these should be on the same line)
     document.getElementById("docs").style.height = window.innerHeight - 120 + "px";
-    document.getElementById("login-form").style.height = window.innerHeight - 80 + "px";
+    if (document.getElementById("login-form"))
+        document.getElementById("login-form").style.height = window.innerHeight - 80 + "px";
 }
 
 var pageURL = $(location).attr('href');
 ssp.webdb.loadHome = function () {
+
+
     var homeHeader = 'Premier Select Sires';
     switch (window.localStorage.getItem("ssp_projectid")) {
         case 'sess':
@@ -270,26 +273,26 @@ ssp.webdb.loadHome = function () {
     divContent = "<div id='status-bar'>";
     divContent += "<ul id='status-infos'>";
     divContent += "<li><div id='nitromsg'></div></li>";
-    divContent += "<li><a href='#' class='button' title='sync' onclick='ssp.webdb.loadSync();'><img src='img/arrow-circle.png' width='16' height='16'> <strong></strong></a></li>";
+    divContent += "<li><a href='#' class='button' title='sync' onclick='ssp.webdb.loadSync();'><img src='img/arrowCircle.png' width='16' height='16'> <strong></strong></a></li>";
     divContent += "</ul>";
     divContent += "</div>";
     divContent += "<div id='header-shadow'></div>";
     divContent += "<article>";
     divContent += "<ul class='shortcuts-list'>";
     divContent += "<li><a href='javascript:void(0);' onClick='ssp.webdb.getCustomersFav();'>";
-    divContent += "<img src='img/112-group.png'  > Customers";
+    divContent += "<img src='img/group.png'  > Customers";
     divContent += "</a></li>";
     divContent += "<li><a href='javascript:void(0);' onClick='ssp.webdb.getBulls(\"%\");'>";
-    divContent += "<img src='img/136-tractor.png' > Bulls";
+    divContent += "<img src='img/tractor.png' > Bulls";
     divContent += "</a></li>";
     divContent += "<li><a href='javascript:void(0);' onClick='ssp.webdb.getSupplies(\"%\");'>";
-    divContent += "<img src='img/173-eyedropper.png' > Supplies";
-    divContent += "</a></li>";
+    divContent += "<img src='img/eyedropper.png' > Supplies";
+    divContent += "</a></li>";/*
     divContent += "<li><a href='javascript:void(0);' onClick='ssp.webdb.getMileage();'>";
-    divContent += "<img src='img/81-dashboard.png' > Mileage";
-    divContent += "</a></li>";
+    divContent += "<img src='img/dashboard.png' > Mileage";
+    divContent += "</a></li>";*/
     divContent += "<li><a href='javascript:void(0);' onClick='ssp.webdb.getTimesheet();'>";
-    divContent += "<img src='img/83-calendar.png' > Timesheets";
+    divContent += "<img src='img/TimeMiles.png' > Time & Miles";
     divContent += "</a></li>";
     divContent += "<li><a href='javascript:void(0);' onclick='ssp.webdb.getTechTransfer();'>";
     divContent += "<img src='img/transfer.png' > Transfers </a></li>";
@@ -298,7 +301,7 @@ ssp.webdb.loadHome = function () {
     divContent += "<li><a href='javascript:void(0);' onclick='ssp.webdb.loadSettings();'>";
     divContent += "<img src='img/settings.png' > Settings </a></li>";
     divContent += "<li><a href='javascript:void(0);' onclick='ssp.webdb.getAnalysis();'>";
-    divContent += "<img src='img/Pie-Chart.png' > Analysis </a></li>";
+    divContent += "<img src='img/PieChart.png' > Analysis </a></li>";
     divContent += "<li><a href='javascript:void(0);' onclick='ssp.webdb.loadDocs();'>";
     divContent += "<img src='img/Modify.png' > Docs </a></li>";
     divContent += "</ul>";
@@ -329,7 +332,7 @@ ssp.webdb.loadHome = function () {
     ssp.webdb.db.transaction(function (tx) {
         //tx.executeSql('SELECT tblCustomers.ACCT_NO,tblCustomers.NAME,max(tblSales.SIDATO) AS NITROSALE FROM tblCustomers LEFT JOIN tblSales ON tblCustomers.ACCT_NO = tblSales.SIACT WHERE tblSales.SITYPS = "N" GROUP BY tblCustomers.ACCT_NO,tblCustomers.NAME HAVING NITROSALE < strftime("%s","now") - (60 * 60 * 24 * tblCustomers.SP7) ORDER BY tblSales.SIDATO', [],     //RP103117***Updated SQL statement***
         //JKS021218***3.100.37->Removed all 020518 Default Nitro Value code, which was replaced by SQL statement CHANGES in Reports and Home to check for Customer Nitro or Default Nitro values*** 
-        tx.executeSql('SELECT tblCustomers.ACCT_NO,tblCustomers.NAME,max(tblSales.SIDATO) AS NITROSALE, CASE WHEN tblCustomers.SP7 IS NULL OR tblCustomers.SP7 = "" OR tblCustomers.SP7 = " " \
+        /*tx.executeSql('SELECT tblCustomers.ACCT_NO,tblCustomers.NAME,max(tblSales.SIDATO) AS NITROSALE, CASE WHEN tblCustomers.SP7 IS NULL OR tblCustomers.SP7 = "" OR tblCustomers.SP7 = " " \
             THEN strftime("%s", "now") - (60 * 60 * 24 * ' + window.localStorage.getItem("ssp_nitrodays") + ') \
             ELSE strftime("%s","now") - (60 * 60 * 24 * tblCustomers.SP7) END AS tmpDays \
             FROM tblCustomers LEFT JOIN tblSales ON tblCustomers.ACCT_NO = tblSales.SIACT \
@@ -342,12 +345,43 @@ ssp.webdb.loadHome = function () {
                     $('#nitromsg').html("<a href='javascript:void(0);' onclick='ssp.webdb.loadReports();ssp.webdb.getNitroFillsOver();' class='button' title='messages'>Nitro <strong>" + rs.rows.length + "</strong></a>");
                 }
             },
-            ssp.webdb.onError);
+            ssp.webdb.onError);*/
+
+        /*
+         * [alaSQL]
+          Issues solve (compared to WebSQL):
+            1. HAVING clause is not working as expected. So split the code in two queries.
+            2. CASE statement used at both places as aliases don't work
+        */
+        tx.exec(`Select tblSales.SIACT, Max(tblSales.SIDATO) AS NITROSALE 
+            FROM tblSales
+            WHERE tblSales.SITYPS = "N" 
+            GROUP BY tblSales.SIACT
+            ORDER BY Max(tblSales.SIDATO)`, [], sales => {
+            //console.log("Max Sales: ",sales)
+            var currentTime = Math.floor(new Date().getTime() / 1000);
+            var ssp_nitrodays = window.localStorage.getItem("ssp_nitrodays");
+            tx.exec(`SELECT tblCustomers.ACCT_NO,tblCustomers.NAME,tblSales.NITROSALE,tblCustomers.SP7, CASE WHEN (tblCustomers.SP7 IS NULL  OR tblCustomers.SP7 = "" OR tblCustomers.SP7 = " ")
+              THEN (${currentTime} - (60 * 60 * 24 * ${ssp_nitrodays}))
+              ELSE (${currentTime} - (60 * 60 * 24 * tblCustomers.SP7)) END AS tmpDays
+              FROM tblCustomers JOIN ? as tblSales ON tblCustomers.ACCT_NO = tblSales.SIACT
+              WHERE tblSales.NITROSALE < (CASE WHEN (tblCustomers.SP7 IS NULL  OR tblCustomers.SP7 = "" OR tblCustomers.SP7 = " ")
+              THEN (${currentTime} - (60 * 60 * 24 * ${ssp_nitrodays}))
+              ELSE (${currentTime} - (60 * 60 * 24 * tblCustomers.SP7)) END)
+              ORDER BY tblSales.NITROSALE`, [sales],
+                function (rs) {
+                    //console.log(rs);
+                    if (rs.length)
+                        $('#nitromsg').html("<a href='javascript:void(0);' onclick='ssp.webdb.loadReports();ssp.webdb.getNitroFillsOver();' class='button' title='messages'>Nitro <strong>" + rs.length + "</strong></a>");
+                }
+            )
+        });
     });
 
     $(document).ready(function () {
         $("#settingsSaveButton").click();
     });
+    
 
 }
 
@@ -383,7 +417,7 @@ ssp.webdb.loadSync = function () {
     divContent = '<section id="login-block">';
     divContent += '<div class="block-border">';
     divContent += '<div class="block-content">';
-    divContent += '<p><button type="button" id="syncbutton" class="full-width" onclick="ssp.webdb.syncDB();">Sync Now!</button></p><div id="loader"><img src="img/loader-dark.gif"></div>';
+    divContent += '<p><button type="button" id="syncbutton" class="full-width" onclick="ssp.webdb.syncDB();">Sync Now!</button></p><div id="loader"><img src="img/loaderDark.gif"></div>';
     divContent += '<ul class="extended-list icon-user">';
 
     divContent += '<li>';
@@ -495,9 +529,9 @@ ssp.webdb.loadSync = function () {
 
     divContent += '</ul>';
     divContent += '<ul class="message">';
-    divContent += '<li>Last Sync <img src="img/arrow-curve-000-left.png" width="16" height="16" class="picto">' + window.localStorage.getItem('ssp_last_sync') + '</li>';
+    divContent += '<li>Last Sync <img src="img/arrowCurveLeft.png" width="16" height="16" class="picto">' + window.localStorage.getItem('ssp_last_sync') + '</li>';
     //	divContent += '<li><button class="small" onclick="ssp.webdb.viewSyncLog();"> view sync log </button></li>';
-    divContent += '<li><button class="small" onclick="ssp.webdb.printSyncItems();"> save sync items to file </button></li>';
+    divContent += '<li><button class="small"="ssp.webdb.printSyncItems();"> save sync items to file </button></li>';
     divContent += '</ul>';
 
     divContent += '</div>';
@@ -553,23 +587,24 @@ ssp.webdb.loadSettings = function () {
         divContent += '<label for="name">Data URL</label>';
 
 
-        if (pageURL.includes("pss.s")) {
-            divContent += '<input type="text" autocomplete="https://pss.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://pss.s-webapi.premierselect.com">';
+        if (pageURL.includes("pss")) {
+            divContent += '<input type="text" autocomplete="https://pss.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://pss.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("cs.s")) {
-            divContent += '<input type="text" autocomplete="https://cs.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://cs.s-webapi.premierselect.com">';
+        else if (pageURL.includes("cs")) {
+            divContent += '<input type="text" autocomplete="https://cs.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://cs.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("mnss.s")) {
-            divContent += '<input type="text" autocomplete="https://mnss.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://mnss.s-webapi.premierselect.com">';
+        else if (pageURL.includes("mnss")) {
+            divContent += '<input type="text" autocomplete="https://mnss.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://mnss.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("ssc.s")) {
-            divContent += '<input type="text" autocomplete="https://ssc.s-webapi.premierselect.com/" name="urldata" id="urldata" class="full-width" value="https://ssc.s-webapi.premierselect.com/">';
+        else if (pageURL.includes("ssc")) {
+            divContent += '<input type="text" autocomplete="https://ssc.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssc.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("ssma.s")) {
-            divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/">';
+        else if (pageURL.includes("ssma")) {
+            divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
         }
         else {
-            divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
+            divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
+            //divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
         }
 
 
@@ -685,23 +720,24 @@ ssp.webdb.loadSettings = function () {
         divContent += '<label for="name">Data URL</label>';
 
 
-        if (pageURL.includes("pss.s")) {
-            divContent += '<input type="text" autocomplete="https://pss.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://pss.s-webapi.premierselect.com">';
+        if (pageURL.includes("pss")) {
+            divContent += '<input type="text" autocomplete="https://pss.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://pss.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("Premier_BullsIPWA")) {
-            divContent += '<input type="text" autocomplete="https://cs.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://cs.s-webapi.premierselect.com">';
+        else if (pageURL.includes("cs")) {
+            divContent += '<input type="text" autocomplete="https://cs.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://cs.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("mnss.s")) {
-            divContent += '<input type="text" autocomplete="https://mnss.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://mnss.s-webapi.premierselect.com">';
+        else if (pageURL.includes("mnss")) {
+            divContent += '<input type="text" autocomplete="https://mnss.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://mnss.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("ssc.s")) {
-            divContent += '<input type="text" autocomplete="https://ssc.s-webapi.premierselect.com/" name="urldata" id="urldata" class="full-width" value="https://ssc.s-webapi.premierselect.com/">';
+        else if (pageURL.includes("ssc")) {
+            divContent += '<input type="text" autocomplete="https://ssc.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssc.s-webapi.premierselect.com/sspweb">';
         }
-        else if (pageURL.includes("ssma.s")) {
-            divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/">';
+        else if (pageURL.includes("ssma")) {
+            divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
         }
         else {
-            divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
+            divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
+            //divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
         }
 
 
@@ -797,18 +833,16 @@ ssp.webdb.loadSettings = function () {
 
 ssp.webdb.clearTables = function () {
     if ($("#btnClearTables").attr("class") == "small red button") {
-        ssp.webdb.db.transaction(function (tx) {
-            tx.executeSql('DROP TABLE tblCustomers', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblCustomersAR', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblCustomerNotes', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblMileage', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblTimesheet', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblSales', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblBulls', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblSupplies', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblTechTransfer', [], ssp.webdb.createTables(), ssp.webdb.onError);
-            tx.executeSql('DROP TABLE tblTechRelief', [], ssp.webdb.createTables(), ssp.webdb.onError);
-        }, [], ssp.webdb.loadHome());
+        ssp.webdb.deleteINDBAndClearInMemoryTables()
+            .then(res => {
+                ssp.webdb.createAndAttachINDB()
+                    .then(res => {
+                        console.log("Database attached after Deletion: ", res)
+                        ssp.webdb.loadHome()
+                    })
+            }).catch(rejected => {
+                console.log("Error while deleting INDB Database and dropping In-memory tables.", rejected)
+            })
     } else {
         $("#btnClearTables").removeClass("button").addClass("small red button");
         $("#btnClearTables").html('PLEASE SYNC DATA FIRST. Sure?');
@@ -816,7 +850,7 @@ ssp.webdb.clearTables = function () {
 }
 
 ssp.webdb.loadLogin = function () {
-    ssp.webdb.createTables(); //RP111016 ***Create tables here to give it time to finish.***
+    //[ala]//ssp.webdb.createTables(); //RP111016 ***Create tables here to give it time to finish.***
     var homeHeader = 'Premier Select Sires';
     switch (window.localStorage.getItem("ssp_projectid")) {
         case 'sess':
@@ -837,7 +871,7 @@ ssp.webdb.loadLogin = function () {
 
     }
     var divContent = "<header id='mainheader'><h1>" + homeHeader + "</h1></header>";
-    //divContent += '<div id="loadingDiv"><img src="img/mask-loader.gif" width="16" height="16"></div></header>';
+    //divContent += '<div id="loadingDiv"><img src="img/maskLoader.gif" width="16" height="16"></div></header>';
     divContent += "<div id='menu'><a href='javascript:void(0);' onclick='ssp.webdb.loadSettings();' id='settings'>Settings</a></div>";
     $('#headercontent').html(divContent);
 
@@ -868,17 +902,18 @@ ssp.webdb.loadLogin = function () {
 }
 
 ssp.webdb.getDebug = function () {
+    ssp.webdb.debugIndicator = 'Debug'; //[alaSQL: Added to show the Debug Items (displayDebug) after deleting an order from Debug list on Settings Page. Currently, after deleting an item, the list does not get updated. Used in ssp.webdb.getOrderItems]
 
     ssp.webdb.db.transaction(function (tx) {
-        //        tx.executeSql('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z") ORDER BY SIORNM,SINAM ', [], displayDebug, ssp.webdb.onError); 
-        tx.executeSql('SELECT * FROM tblSales WHERE MOD = 1 ORDER BY SIORNM,SINAM ', [], displayDebug, ssp.webdb.onError);
+        //        tx.exec('SELECT * FROM tblSales WHERE MOD = 1 AND (SITYPS = "D" OR SITYPS = "N" OR SITYPS = "S" OR SITYPS = "B" OR SITYPS = "Z") ORDER BY SIORNM,SINAM ', [], displayDebug, ssp.webdb.onError); 
+        tx.exec('SELECT * FROM tblSales WHERE MOD = 1 ORDER BY SIORNM,SINAM ', [], displayDebug, ssp.webdb.onError);
 
     });
 
 
 }
 
-function displayDebug(tx, rs) {
+function displayDebug(rs, err) {
 
     var rowOutput = '<div class="no-margin"><table class="table" cellspacing="0" width="100%">';
     rowOutput += '<thead>';
@@ -923,47 +958,47 @@ function displayDebug(tx, rs) {
     rowOutput += '<th scope="col">Delete?</th>';
     rowOutput += '<tbody>';
 
-    for (var i = 0; i < rs.rows.length; i++) {
+    for (var i = 0; i < rs.length; i++) {
         rowOutput += '<tr>';
-        rowOutput += '<td>' + rs.rows.item(i).SIACT + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIINVL + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIORNM + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIINVO + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIDATO + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SITIMO + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SITYPS + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SICOD + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIQTY + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIMATH + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SINAM + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIPRC + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SITYPI + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SICOW + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIARM + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SISTP + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIOTH + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SILIN + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SISEM + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIPOA + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SISUP + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SICDI + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIPGA + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIDSC + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIREP + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIANM + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SILVL1 + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SILVL2 + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SILVL3 + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SILVL4 + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SILVL5 + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).SIRETL + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).FRZDAT + '</td>';    //JKS111616***Added FRZDAT to Debug.***
-        rowOutput += '<td>' + rs.rows.item(i).LOTNOT + '</td>';    //JKS111416***Added LOTNOT to Debug.***
-        rowOutput += '<td>' + rs.rows.item(i).FRZYYYYMMDD + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).MOD + '</td>';
-        rowOutput += '<td>' + rs.rows.item(i).MODSTAMP + '</td>';
+        rowOutput += '<td>' + rs[i].SIACT + '</td>';
+        rowOutput += '<td>' + rs[i].SIINVL + '</td>';
+        rowOutput += '<td>' + rs[i].SIORNM + '</td>';
+        rowOutput += '<td>' + rs[i].SIINVO + '</td>';
+        rowOutput += '<td>' + rs[i].SIDATO + '</td>';
+        rowOutput += '<td>' + rs[i].SITIMO + '</td>';
+        rowOutput += '<td>' + rs[i].SITYPS + '</td>';
+        rowOutput += '<td>' + rs[i].SICOD + '</td>';
+        rowOutput += '<td>' + rs[i].SIQTY + '</td>';
+        rowOutput += '<td>' + rs[i].SIMATH + '</td>';
+        rowOutput += '<td>' + rs[i].SINAM + '</td>';
+        rowOutput += '<td>' + rs[i].SIPRC + '</td>';
+        rowOutput += '<td>' + rs[i].SITYPI + '</td>';
+        rowOutput += '<td>' + rs[i].SICOW + '</td>';
+        rowOutput += '<td>' + rs[i].SIARM + '</td>';
+        rowOutput += '<td>' + rs[i].SISTP + '</td>';
+        rowOutput += '<td>' + rs[i].SIOTH + '</td>';
+        rowOutput += '<td>' + rs[i].SILIN + '</td>';
+        rowOutput += '<td>' + rs[i].SISEM + '</td>';
+        rowOutput += '<td>' + rs[i].SIPOA + '</td>';
+        rowOutput += '<td>' + rs[i].SISUP + '</td>';
+        rowOutput += '<td>' + rs[i].SICDI + '</td>';
+        rowOutput += '<td>' + rs[i].SIPGA + '</td>';
+        rowOutput += '<td>' + rs[i].SIDSC + '</td>';
+        rowOutput += '<td>' + rs[i].SIREP + '</td>';
+        rowOutput += '<td>' + rs[i].SIANM + '</td>';
+        rowOutput += '<td>' + rs[i].SILVL1 + '</td>';
+        rowOutput += '<td>' + rs[i].SILVL2 + '</td>';
+        rowOutput += '<td>' + rs[i].SILVL3 + '</td>';
+        rowOutput += '<td>' + rs[i].SILVL4 + '</td>';
+        rowOutput += '<td>' + rs[i].SILVL5 + '</td>';
+        rowOutput += '<td>' + rs[i].SIRETL + '</td>';
+        rowOutput += '<td>' + rs[i].FRZDAT + '</td>';    //JKS111616***Added FRZDAT to Debug.***
+        rowOutput += '<td>' + rs[i].LOTNOT + '</td>';    //JKS111416***Added LOTNOT to Debug.***
+        rowOutput += '<td>' + rs[i].FRZYYYYMMDD + '</td>';
+        rowOutput += '<td>' + rs[i].MOD + '</td>';
+        rowOutput += '<td>' + rs[i].MODSTAMP + '</td>';
 
-        rowOutput += '<td><div class="align-right"><a href="javascript:void(0)" class="button" id="' + rs.rows.item(i).MODSTAMP + '" title="delete" onclick="ssp.webdb.deleteOrderItem(' + "'" + rs.rows.item(i).SIORNM + "'," + rs.rows.item(i).MODSTAMP + ')"><img src="img/bin.png" width="16" height="16"></a></td>';
+        rowOutput += '<td><div class="align-right"><a href="javascript:void(0)" class="button" id="' + rs[i].MODSTAMP + '" title="delete" onclick="ssp.webdb.deleteOrderItem(' + "'" + rs[i].SIORNM + "'," + rs[i].MODSTAMP + ')"><img src="img/bin.png" width="16" height="16"></a></td>';
 
         rowOutput += '</tr>';
     }
@@ -992,23 +1027,24 @@ ssp.webdb.loadInitSettings = function () {
     divContent += '<label for="name">Data URL</label>';
 
     // Modified for initial settings
-    if (pageURL.includes("pss.s")) {
-        divContent += '<input type="text" autocomplete="https://pss.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://pss.s-webapi.premierselect.com">';
+    if (pageURL.includes("pss")) {
+        divContent += '<input type="text" autocomplete="https://pss.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://pss.s-webapi.premierselect.com/sspweb">';
     }
-    else if (pageURL.includes("cs.s")) {
-        divContent += '<input type="text" autocomplete="https://cs.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://cs.s-webapi.premierselect.com">';
+    else if (pageURL.includes("cs")) {
+        divContent += '<input type="text" autocomplete="https://cs.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://cs.s-webapi.premierselect.com/sspweb">';
     }
-    else if (pageURL.includes("mnss.s")) {
-        divContent += '<input type="text" autocomplete="https://mnss.s-webapi.premierselect.com" name="urldata" id="urldata" class="full-width" value="https://mnss.s-webapi.premierselect.com">';
+    else if (pageURL.includes("mnss")) {
+        divContent += '<input type="text" autocomplete="https://mnss.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://mnss.s-webapi.premierselect.com/sspweb">';
     }
-    else if (pageURL.includes("ssc.s")) {
-        divContent += '<input type="text" autocomplete="https://ssc.s-webapi.premierselect.com/" name="urldata" id="urldata" class="full-width" value="https://ssc.s-webapi.premierselect.com/">';
+    else if (pageURL.includes("ssc")) {
+        divContent += '<input type="text" autocomplete="https://ssc.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssc.s-webapi.premierselect.com/sspweb">';
     }
-    else if (pageURL.includes("ssma.s")) {
-        divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/">';
+    else if (pageURL.includes("ssma")) {
+        divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
     }
     else {
-        divContent += '<input type="text" autocomplete="http://localhost:55691/" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
+        divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
+        //divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
     }
 
     //divContent += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="urldata" id="urldata" class="full-width" value="' + window.localStorage.getItem("ssp_urldata") + '">';     /*JKS080818->4.03***Auto Fill Search switch*/

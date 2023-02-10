@@ -114,8 +114,8 @@ namespace SSP_WebAPI.Controllers
             };
             return Data.DBUtils.GetJSONfromSP(strProcName, spParams);
         }
-                
-        [HttpGet]   
+
+        [HttpGet]
         [Route("tblAS400Sales/{id}/{epochtime}")]
         public string tblAS400Sales(string id, string epochtime)
         {
@@ -205,10 +205,11 @@ namespace SSP_WebAPI.Controllers
                 new Data.DBUtils.DataParameters(){ parameter = "@Password", obj = pwd }
             };
             DataSet ds = Data.DBUtils.GetDatasetfromSP(strProcName, spParams);
-            if (ds.Tables[0].Rows.Count  > 0)
+            if (ds.Tables[0].Rows.Count > 0)
             {
                 return ds.Tables[0].Rows[0]["GUIDTech"] + "|" + ds.Tables[0].Rows[0]["PKIDTech"] + "|" + ds.Tables[0].Rows[0]["TechID"];
-            }   else
+            }
+            else
             {
                 return "Failed";
             }
@@ -216,7 +217,7 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInCustomers/{syncid}/{epochtime}")]
-        public string tblSyncInCustomers(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInCustomers(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSyncInCustomers";
             List<Data.DBUtils.DataParameters> spParams;
@@ -273,7 +274,7 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInCustomerNotes/{syncid}/{epochtime}")]
-        public string tblSyncInCustomerNotes(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInCustomerNotes(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSyncInCustomerNotes";
             List<Data.DBUtils.DataParameters> spParams;
@@ -296,13 +297,15 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInSales/{syncid}/{epochtime}")]
-        public string tblSyncInSales(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInSales(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
-            string strProcName = "spInserttblSyncInSales";
-            List<Data.DBUtils.DataParameters> spParams;
-            foreach (JObject j in jsonData)
+            try
             {
-                spParams = new List<Data.DBUtils.DataParameters>()
+                string strProcName = "spInserttblSyncInSales";
+                List<Data.DBUtils.DataParameters> spParams;
+                foreach (JObject j in jsonData)
+                {
+                    spParams = new List<Data.DBUtils.DataParameters>()
                 {   //JKS051617***CHANGED Convert.ToDouble to .ToString() to resolve NULL exceptions***
                     new Data.DBUtils.DataParameters() { parameter = "@PKIDSync", obj = Convert.ToInt32(syncid) },
                     new Data.DBUtils.DataParameters() { parameter = "@SIACT", obj = (j["SIACT"].ToString()) },
@@ -344,14 +347,19 @@ namespace SSP_WebAPI.Controllers
                     new Data.DBUtils.DataParameters() { parameter = "@BREEDTYPE", obj = (j["BREEDTYPE"] == null) ? "" : (j["BREEDTYPE"].ToString()) },
                     new Data.DBUtils.DataParameters() { parameter = "@FRZYYYYMMDD", obj = (j["FRZYYYYMMDD"] == null) ? "" : (j["FRZYYYYMMDD"].ToString()) }
                  };
-                 Data.DBUtils.GetJSONfromSP(strProcName, spParams);
+                    Data.DBUtils.GetJSONfromSP(strProcName, spParams);
+                }
+                return "success";
             }
-            return "success";
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
 
         [HttpPost]
         [Route("tblSalesBackup/{syncrep}/{epochtime}")]
-        public string tblSalesBackup(string epochtime,string syncrep, [FromBody] JArray jsonData)
+        public string tblSalesBackup(string epochtime, string syncrep, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSalesBackup";
             List<Data.DBUtils.DataParameters> spParams;
@@ -406,7 +414,7 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInSalesNoFrz/{syncid}/{epochtime}")]
-        public string tblSyncInSalesNoFrz(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInSalesNoFrz(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSyncInSales";
             List<Data.DBUtils.DataParameters> spParams;
@@ -460,7 +468,7 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInTechRelief/{syncid}/{epochtime}")]
-        public string tblSyncInTechRelief(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInTechRelief(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSyncInTechRelief";
             string MasterTech = "0";
@@ -478,7 +486,8 @@ namespace SSP_WebAPI.Controllers
                 Data.DBUtils.GetJSONfromSP(strProcName, spParams);
                 MasterTech = j["TechIDMaster"].ToString();
             }
-            if (MasterTech != "0") {
+            if (MasterTech != "0")
+            {
                 spParams = new List<Data.DBUtils.DataParameters>()
                 {
                     new Data.DBUtils.DataParameters(){ parameter = "@TechNo", obj = MasterTech},
@@ -491,7 +500,7 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInMileage/{syncid}/{epochtime}")]
-        public string tblSyncInMileage(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInMileage(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSyncInMileage";
             List<Data.DBUtils.DataParameters> spParams;
@@ -518,7 +527,7 @@ namespace SSP_WebAPI.Controllers
 
         [HttpPost]
         [Route("tblSyncInTimesheet/{syncid}/{epochtime}")]
-        public string tblSyncInTimesheet(string syncid, string epochtime, [FromBody]JArray jsonData)
+        public string tblSyncInTimesheet(string syncid, string epochtime, [FromBody] JArray jsonData)
         {
             string strProcName = "spInserttblSyncInTimesheet";
             List<Data.DBUtils.DataParameters> spParams;
@@ -534,8 +543,8 @@ namespace SSP_WebAPI.Controllers
                     new Data.DBUtils.DataParameters(){ parameter = "@TIMESHEETCODE", obj = (j["TIMESHEETCODE"].ToString())},
                     // Date 12/06/2021 
                     // Commented two line below because spInserttblSyncInTimesheet procedure has not exit that parameter and due to this error generating.
-                    //new Data.DBUtils.DataParameters(){ parameter = "@WORKEDFOR", obj = (j["WORKEDFOR"] == null) ? "" : (j["WORKEDFOR"].ToString()) },
-                  //  new Data.DBUtils.DataParameters(){ parameter = "@SPLIT", obj = (j["SPLIT"] == null) ? "" : (j["SPLIT"].ToString()) },
+                    new Data.DBUtils.DataParameters(){ parameter = "@WORKEDFOR", obj = (j["WORKEDFOR"] == null) ? "" : (j["WORKEDFOR"].ToString()) },
+                    new Data.DBUtils.DataParameters(){ parameter = "@SPLIT", obj = (j["SPLIT"] == null) ? "" : (j["SPLIT"].ToString()) },
                     new Data.DBUtils.DataParameters(){ parameter = "@MOD", obj = Convert.ToInt32(j["MOD"])},
                     new Data.DBUtils.DataParameters(){ parameter = "@MODSTAMP", obj = Convert.ToInt32(j["MODSTAMP"])}
                 };

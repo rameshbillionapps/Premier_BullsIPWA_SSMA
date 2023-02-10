@@ -1,4 +1,5 @@
 var curUrl_cs = "https://ssma.s-webapi.premierselect.com/sspweb";
+
 ssp.webdb.MileageDisplay = function () {
     //alert('display mileage');
     $('#dtpMileageDate').val('');

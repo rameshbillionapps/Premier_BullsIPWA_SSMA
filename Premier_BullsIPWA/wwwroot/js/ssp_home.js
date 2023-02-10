@@ -1,127 +1,6 @@
 var CUSTPAGING = 25;
 var sspversion = '5.00pwa';
 
-/*JKS100219***4.24pwa->CHANGED save sync file name format.  FIXED app Backups.  CHANGED app name and associated functions from SSP to Bulls-I.*/
-/*JKS092519***4.23pwa->FIXED save sync items to file button.  CS ONLY - REMOVED "undefined" field from Customer Order PDF.***
-/*JKS092419***4.23->CHANGED 9.99 to 0.01 and ADDED +|| ($('.breeddisc.green-keyword').html() == "Special %")+ to allow Cust % and Special % to reset to the original bullprice when selected.*/
-/*JKS092419***4.23->ADDED a space before and after PCP to fix the discount button.*/
-/*JKS072219 ***4.22 ->Changed "SSP Version" to "Bulls-I Version".  PSS ONLY: Changed Customer Header from SESS to PSS.*/
-/*JKS071519***4.22->PSS ONLY: Changed LAST PAYMENT to CURRENT MONTH PAYMENT.*/
-/*JKS070719***4.21->SSMA ONLY: Re-Branded Customer heading from PSSS to SSMA.*/
-/*JKS061719***4.20->PSSS ONLY: Re-branded Prairie State/Select Sires to Select Sires MidAmerica.  Changed the Name and Logo, and added another address and Phone number.*/
-/*JKS050919***4.19->MNSS ONLY: Made Supply tax changes for MN and ND Customers.  SSC ONLY: Changed Invoice and transfer email from: ssci@selectsires.ca to: ssgi@selectgen.com.*/
-/*JKS042919***4.18->Changes for CS ONLY: Removed Sales Code, and Previous Items in Tech mode.  Changed invoice address info on the Phone line.*/
-/*JKS041819***4.17->IF ELSE to set CS ssp_projectid to ECSS for case values*/
-/*JKS041819***4.17->Removed Switch for ECSS/CS on Customer Orders*/
-/*JKS041119***4.17->Re-branded East Central Select Sires to CentralStar*/
-/*JKS032019***4.16->Re-branded Southeast Select Sires to Premier Select Sires.*/
-/*JKS031919***4.15->Re-branded Select Sire Power to Premier Select Sires.*/
-/*RP030719***4.14->Modified SSC label to include the note instead of the freeze date.*/
-/*JKS030619***4.13->Removed Freeze Date from SSC Labels when Freeze Code is switched off in the Advanced Settings.*/
-/*JKS030619***4.12->Fixed PCP button on Bull Orders from display 3 "& nbsp;" before and after "PCP".*/
-/*RP030519***4.12->Removed Freeze Date button from Bull Orders when Freeze Code is switched off in the Advanced Settings.*/
-/*RP022119***4.11->Placed tech toggle switch and removed PCP on order for mnss...Added Labor and Returned Semen to invoice.*/
-/*JKS103118***4.10->ADDED the following to Reports for SESS Semen Sorted Order List: || (window.localStorage.getItem("ssp_projectid") == 'sess')*/
-/*RP102318***4.09->Added a check for null before formatting frzyyyymmdd in the orderPDF function*/
-/*RP102318***4.09->Changed loadOrderItems function freeze check from ("ssp_projectid") == "ssc" to ("ssp_freeze") == 1*/
-/*JKS101518***4.08->CHANGED THIS formatDate(rs[i].FRZYYYYMMDD) TO formatYYYYMMDDtoMDY(rs[i].FRZYYYYMMDD)*/
-/*JKS101518***4.08->Added the following to not display FRZ with 0 and NULL values in pending orders: && rs[i].FRZYYYYMMDD != "0" && rs[i].FRZYYYYMMDD != "null"*/
-/*RP100918***4.08-> replaced epoch frzdat with FRZYYYYMMDD
-/*JKS100418***4.07->Added the following to include pending transfers to the BackUp Items function.*** OR SITYPS = "T"*/
-/*JKS100418***4.07->Added Transfer Quantity Total to backupPDF.*/
-/*JKS100418***4.07->Added if (rs[i].SITYPS != "T") for pending transfers in the backupPDF*/
-/*JKS100418***4.07->Added || rs[i].SITYPS != "T" for pending transfers in the backupPDF*/
-/*JKS100418***4.07->Added if (rs[i].SITYPS != "T") {} to include pending transfers to the Backup Items for Grand Total*/
-/*JKS100318***4.06->Added Transfer Quantity Total to snycPDF.*/
-/*JKS092618***4.06->Added if (rs[i].SITYPS != "T")*/
-/*JKS092018***4.06->Added if (rs[i].SITYPS != "T") {} to include pending transfers to the "save sync items to file" Button on the SYNC Page for Grand Total*/
-/*JKS091918***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** || rs[i].SITYPS != "T"*/
-/*JKS091018***4.06->Added the following to include pending transfers to the "save sync items to file" Button on the SYNC Page*** OR SITYPS = "T"*/
-/*JKS083018***4.05->Made additional changes to the SQL function for the Sorted Bull Inventory Report for unaccounted ACTIVE=L items or Bulls that appear on a price list but aren't included with Amanda's Semen Order List*/
-/*JKS082818***4.04->Made a change to the SQL function for the Sorted Bull Inventory Report to fix sorting error on new list*/
-/*JKS080818->4.03***Auto Fill Search switch for all input box code was updated*/
-/*JKS080818->4.03***SESS Fall Credit rate changed from .50 to .60*/
-/*JKS071918*v4.02->Made a change to the SQL function for the Sorted Bull Inventory Report to fix shortage in list*/
-/*JKS051718***v4.01->Added Phone Number edit for ECSS only*/
-//JKS040218***v4.00->Addidtional work-on BeefOnBeef or BeefOnDairy or Unknown breedings.***
-//JKS032918***v4.00->BeefOnBeef or BeefOnDairy or Unknown breedings.***         
-//JKS032818***v4.00->BEGAN Check boxes for Bull on Bull or Bull on Dairy breedings.***
-//JKS030718***3.100.41->REMOVED SECTION for line of code below to RESOLVE NaN/NaN/NaN ERROR for TIMESTAMP data after WebAPI and Date function changes.***
-//JKS030718***3.100.41->ADDED LINE to RESOLVE NaN/NaN/NaN ERROR for TIMESTAMP data after WebAPI and Date function changes for co-ops now included with SSP.***
-//JKS022818***3.100.40->Changed icon link spelling from "modify" to "Modify"***
-//JKS022718***3.100.39->Removed Tech Relief button in Settings for SSC***
-//JKS022718***3.100.39->Edited Docs icon to center***
-//JKS022718***3.100.39->Changed Splashscreen delay from 10 to 3 seconds***
-//JKS022618***3.100.39->IF ELSE for SSC to not display Tech switch, Tech Relief button, and Tech Service Price in Settings***
-//RP022018***3.100.38->Added functionality for Docs. Still need to work on the URL for the production APK...***
-//JKS021218***3.100.37->Removed all 020518 Default Nitro Value code, which was replaced by SQL statement CHANGES in Reports and Home to check for Customer Nitro or Default Nitro values***
-//JKS021218***3.100.37->Changed Displayed value from window.localStorage.getItem("ssp_nitrodays") to "" in Customer Info***
-//JKS020518***3.100.37->ADDED IF ELSE Get Default Nitro Values to Reports***
-//JKS020518***3.100.37->ADDED Get Default Nitro Values to Reports***
-//JKS020518***3.100.37->ADDED Default Nitro Transactions to Home***
-//JKS020518***3.100.37->ADDED an IF ELSE to check for null or blank Nitro values to Home***
-//JKS011818***3.100.37->Added or '' to NitroDays check in Customer***
-//JKS011818***3.100.37->Restored NitroDays in db for Settings***
-//JKS011718***3.100.37->Restored NitroDays in Settings***
-//RP011718***3.100.37->Added quotes around the rep in the analysis if only my sales is checked***
-//JKS122117***3.100.36->Fixed Pie-Chart icon for Analysis***
-//JKS122117***3.100.36->Added a check for NULL NitroDays***
-//JKS122117***3.100.36->Added a check for NULL CustomerNotes***
-//RP121917***3.100.36->Made Changes to Analysis***
-//RP121917***3.100.36->Created a web db JOIN between SIREP and TRANSFERLISTNAME
-//JKS121817***3.100.36->ADDED USERNAME to Transfer List for a From Name***
-//JKS121817***3.100.36->ADDED if (type == 'B') else for Beef setSalesItemBull***
-//JKS121817***3.100.36->ADDED if (window.localStorage.getItem("type") == 'B') else for Beef resetSalesItemBull***
-//JKS121817***3.100.36->ADDED if (window.localStorage.getItem("type") == 'B') else for Beef loadOrderContentBlock***
-//JKS111517***3.100.36->Added IfElse statement to ONLY allow for TechIdMaster to Edit.***
-//JKS110817***3.100.36->NitroDays Moved to Customer Info, Changes for Nitro Expired Report...Replaced  ' + daysAgo30 + ' with  strftime("%s","now") - (60 * 60 * 24 * tblCustomers.SP7) and Removed  var daysAgo30 in ssp_db.js***
-//RP103117***3.100.36->Updated SQL statement on ssp_Home.***
-//JKS102517***3.100.36->Moved NitroDays to Customer Info from settings***
-//JKS101817***3.100.36->Added SP7=custnitrodays to table values.***
-//JKS101817***3.100.36->Customer Nitrogen Days Edit Function***
-//JKS101817***3.100.36->Customer Nitrogen Days Save Edit Function***
-//JKS101817***3.100.36->Added Nitrogen Days to Customer Accounts.***
-//JKS101817***3.100.36->Added Nitrogen Days to Customer Accounts.***
-//JKS101817***3.100.36->Added custnitrodays text field to New Customers.***
-//JKS081017***3.100.35->Added an IF ELSE to RESOLVE NaN/NaN/NaN ERROR for varied TIMESTAMP data between Co-ops in Sync History Reports***
-//JKS080817***3.100.34->Changed Date/Time format to RESOLVE NaN/NaN/NaN ERROR***
-//JKS072617***3.100.33->ADDED else if to change Beef breakdown pricing to be Retail/50 QTY/200 QTY***
-//JKSRP072517***3.100.33->ADDED Bull Inv Order Sorted in the reports list according to the Semen Order Form***
-//JKS071417***3.100.32->PSSS fix: ADDED if statement to remove "undefined" and NULL "call:" results***
-//JKS071017***3.100.31->ADDED ( !== "0" ? ' ' : ) to check for FRZDAT values to FIX incorrect FRZDAT in Supply Inventory Info*** in ssp_invorder.js***
-//JKS070717***v3.100.31->Fixed Supply Inventory counts, but broke removal of invalid Freeze Dates in previous Supply sales, and previous Bull sales count in the Inventory.***
-//JKS070617***3.100.31->FIXED Bull Inventory Info by changing item.FRZDAT to ((!item.FRZDAT) ? 0 : item.FRZDAT)***
-//JKS062717***3.100.30->Changed LOTNOT to (item.LOTNOT == null ? '' : item.LOTNOT) and FRZDAT to (item.FRZDAT == null ? '' : item.FRZDAT) TO RESOLVE "undefined" in both old and new db lists***
-//JKS062717***3.100.30->ADDED (&& (rs[i].FRZDAT) != "undefined") {} TO REMOVE NaN in Bull List and prevent default date***
-//JKS062317***Changed LOTNOT to (item.LOTNOT == 'undefinded' ? '' : item.LOTNOT) and FRZDAT to (item.FRZDAT == 'undefinded' ? '' : item.FRZDAT)***
-//JKS062217***Changed LOTNOT to ((item.LOTNOT = 'undefinded' || 'null') ? '' : item.LOTNOT) and FRZDAT to ((item.FRZDAT = 'undefinded' || 'null') ? '' : item.FRZDAT)***
-//JKS062017***3.100.29->Fixed VA zipcode error replaced six-digit number with 24151 in Orders and Transfers***
-//***3.100.28->Changes to fix Bull Inv Report...Splash screen added...all plugins removed and Installed***
-//RP053017***3.100.27->SSC Changes to NOT seperate BullInv Report by Freeze Dates.***
-//JKS051117***3.100.26->Changes to getServerDataBulls Function removed tblAS400BullsNoFrz ONLY uses tblAS400Bulls***
-//JKS042817***Replaced myYITS with SSP_BullsI to debug on PC***
-//JKS033117***3.100.25->Changes made to ssp_db.js to work with SSP new Bulls-I app, SQL db, and web services.*** 
-//JKS033117***Removed tblAS400SalesNoFrz***//JKS033017***
-//JKS033117***Changed FRZDAT value...Removed ((!item.FRZDAT) ? '0' : item.FRZDAT)***
-//JKS033117***Begin...Removed tblSyncInSalesNoFrz***
-//JKS033017***3.100.24->Begin...ADDED tblAS400SalesNoFrz to function like v3.100.20 for SSP***
-//JKS033017***Changed FRZDAT value to function like v3.100.20 for SSP...added ((!item.FRZDAT) ? '0' : item.FRZDAT)***
-//JKS033017***Begin...ADDED tblSyncInSalesNoFrz to function like v3.100.20 for SSP***
-//JKS120616***UNDID all changes to restore back to v3.100.23 status next build is v3.100.24***
-//JKS112216***Added MNSS to header...Added taxes to PDF***
-//RP112216***Fixed taxable Supplies and added Nitro taxable for ND***
-//JKS112116***Added a check if MNSS taxable in ssp_ordes.js***
-//JKS111716***Changes in ssp_db.js: Removed tblAS400SalesNoFrz...Removed tblSyncInSalesNoFrz...Changed FRZDAT value, Removed ((!item.FRZDAT) ? '0' : item.FRZDAT)***
-//RP111716***Fixed leading zeros for bull codes for mnss. Changed the insert of the GetServerDataBull.***
-//JKS111616***Added FRZDAT to Debug.***
-//RP111516***LOTNOT sync changes for all, except SSP.***
-//RP111516 ***Fixed Order Notes syncing for mnss, inventory titles, customer delete only if mod = 1.
-//JKS111416***Added LOTNOT to Debug.***
-//JKS110916***MNSS changes to Order PDF Phone#, Email, Invoice# to display as Order#, and Bull Code to be Item#...Removed PGA check box for MNSS.***
-//JKS110916***Changed MNSS Order PDF Phone# to 320-259-6680 & Email to mnselect@mnss.coop.***
-//JKS110916***Begin Added IfElse to MNSS Order PDF for Invoice# to display Order# as Invoice#.***
-//JKS110916***Begin Added IfElse to MNSS Order PDF for Bull Code to be Item#.***
-//JKS110916***Begin IF Removed PGA check box for MNSS.***
 
 var delay = (function () {
     var timer = 0;
@@ -381,7 +260,7 @@ ssp.webdb.loadHome = function () {
     $(document).ready(function () {
         $("#settingsSaveButton").click();
     });
-    
+
 
 }
 
@@ -601,10 +480,14 @@ ssp.webdb.loadSettings = function () {
         }
         else if (pageURL.includes("ssma")) {
             divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
+            //divContent += '<input type="text" autocomplete=" http://localhost:55691/sspweb" name="urldata" id="urldata" class="full-width" value=" http://localhost:55691/sspweb">';
+
+
         }
         else {
             divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
-            //divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
+            //divContent += '<input type="text" autocomplete=" http://localhost:55691/sspweb" name="urldata" id="urldata" class="full-width" value=" http://localhost:55691/sspweb">';
+
         }
 
 
@@ -734,10 +617,13 @@ ssp.webdb.loadSettings = function () {
         }
         else if (pageURL.includes("ssma")) {
             divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
+            //divContent += '<input type="text" autocomplete=" http://localhost:55691/sspweb" name="urldata" id="urldata" class="full-width" value=" http://localhost:55691/sspweb">';
+
         }
         else {
             divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
-            //divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
+            //divContent += '<input type="text" autocomplete=" http://localhost:55691/sspweb" name="urldata" id="urldata" class="full-width" value=" http://localhost:55691/sspweb">';
+
         }
 
 
@@ -1041,10 +927,13 @@ ssp.webdb.loadInitSettings = function () {
     }
     else if (pageURL.includes("ssma")) {
         divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
+        //divContent += '<input type="text" autocomplete=" http://localhost:55691/sspweb" name="urldata" id="urldata" class="full-width" value=" http://localhost:55691/sspweb">';
+
     }
     else {
         divContent += '<input type="text" autocomplete="https://ssma.s-webapi.premierselect.com/sspweb" name="urldata" id="urldata" class="full-width" value="https://ssma.s-webapi.premierselect.com/sspweb">';
-        //divContent += '<input type="text" autocomplete="https://ssp.selectsirepower.com/SSPweb" name="urldata" id="urldata" class="full-width" value="https://ssp.selectsirepower.com/SSPweb">';
+        //divContent += '<input type="text" autocomplete=" http://localhost:55691/sspweb" name="urldata" id="urldata" class="full-width" value=" http://localhost:55691/sspweb">';
+
     }
 
     //divContent += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="urldata" id="urldata" class="full-width" value="' + window.localStorage.getItem("ssp_urldata") + '">';     /*JKS080818->4.03***Auto Fill Search switch*/

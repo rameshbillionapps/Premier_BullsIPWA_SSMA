@@ -25,7 +25,7 @@ if (workbox) {
   console.log(`Boo! Workbox didn't load 😬`);
 }
 
-const version = '4.62pwa';
+const version = '5.00pwa';
 var cacheName = `ssp_${version}`;
 var urlsToCache = [
   '/',

@@ -1,5 +1,6 @@
 
 var curUrl_cs = "https://ssma.s-webapi.premierselect.com/sspweb";
+
 ssp.webdb.TimesheetDisplay = function () {
     $('#dtpTimesheetDate').val('');
     $('#chkTimesheetCode').val('');
@@ -37,7 +38,7 @@ ssp.webdb.TimesheetAdd = function () {
                 var saveDate = new Date();
                 if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
                     weekDate.setDate(weekDate.getDate() - (weekDate.getDay() ? (weekDate.getDay() - 1) : 6)); //If Sunday is the selected Day then book the previous week. Subtracting 6 when getDay() is 0, i.e. Sunday.
-                    weekLength = 1;
+                    weekLength = 7;
                 } else {
                     weekDate.setDate(weekDate.getDate() - (weekDate.getDay() - 1));
                 }
@@ -105,7 +106,7 @@ function loadTimesheet(rs) {
     rowOutput += '<label for="date">Date</label>';
     rowOutput += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="date" id="dtpTimesheetDate" class="full-width" >';      /*JKS080818->4.03***Auto Fill Search switch*/
     rowOutput += '</p>';
-    if (window.localStorage.getItem("ssp_projectid") !== 'ecss') {
+    if (window.localStorage.getItem("ssp_projectid") != 'ecss') {
         rowOutput += '<p class="inline-mini-label">';
         rowOutput += '<label for="halfday">Half Day</label>';
         rowOutput += '<input type="checkbox" name="halfday" id="chkTimesheetHalf" class="switch" >';
@@ -142,6 +143,13 @@ function loadTimesheet(rs) {
     rowOutput += '<label for="week">Week</label>';
     rowOutput += '<input type="checkbox" name="week" id="chkTimesheetWeek" class="switch" title="Enter time for whole week (Monday-Friday)." >';
     rowOutput += '</p>';
+    //if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
+    //    rowOutput += '<p class="inline-mini-label">';
+    //    rowOutput += '<label for="workedfor">Area(s) Worked</label>';
+    //    rowOutput += '<input type="text" autocomplete="' + window.localStorage.getItem("ssp_autofillsearch") + '" name="workedfor" id="txtWorkedFor" class="full-width" >';
+    //    rowOutput += '<span style="color:red" id="errortxtWorkedFor"></span>';
+    //    rowOutput += '</p>';
+    //}
     if (window.localStorage.getItem("ssp_urldata") == curUrl_cs) {
         rowOutput += '<p class="inline-mini-label">';
         rowOutput += '<label for="workedfor">Area(s) Worked</label>';
@@ -153,9 +161,9 @@ function loadTimesheet(rs) {
         rowOutput += '<label for="Split">% Split</label>';
         rowOutput += '<input type="text" name="split" autocomplete="off" id="split" class="full-width"/>';
         rowOutput += '<span style="color:red;display:none;" id="errorSplit">Only number and / or - accepted !</span>';
-        rowOutput += '</p>';
     }
-  
+    rowOutput += '</p>';
+
     rowOutput += '<p><button id="btnTimesheetAdd" class="full-width">Add Time</button></p>';
     rowOutput += '</fieldset>';
     rowOutput += '</br>';
@@ -176,8 +184,8 @@ function loadTimesheet(rs) {
     rowOutput += '<th scope="col" style="width:35px"></th>';
     rowOutput += '</tr></thead><tbody>';
     for (var i = 0; i < rs.length; i++) {
-       
-        var eventDesc = ((rs[i].TIMESHEETHALF == 1) ? '.5' : '');
+
+        var eventDesc = ((rs[i].TIMESHEETHALF == 1) ? '.6' : '');
         var eventBackColor = ((rs[i].MOD == 1) ? '' : 'green');
         if (window.localStorage.getItem("ssp_projectid") == 'ecss') {
             eventDesc = rs[i].TIMESHEETCODE.substring(0, 6);
@@ -203,7 +211,7 @@ function loadTimesheet(rs) {
                     break;
             }
         }
-       
+
         event = new Object();
         event.title = eventDesc;
         event.start = formatDate(rs[i].TIMESHEETDATE);
